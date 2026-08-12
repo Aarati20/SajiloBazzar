@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Register &middot; SajiloBazar</title>
+<link rel="stylesheet" href="styles.css">
+<script src="common.js" defer></script>
+<script src="register.js" defer></script>
+</head>
+<body>
+<header class="site" id="site-header"></header>
+<main>
+<div class="card" style="max-width:460px;margin:40px auto 0">
+  <h1 style="font-size:32px;margin:0 0 28px">Create an account</h1>
+  <div style="display:flex;flex-direction:column;gap:18px">
+    <div class="field"><label for="rg-name">Full name</label><input id="rg-name" class="input" type="text" placeholder="Aarati Adhikari"></div>
+    <div class="field"><label for="rg-email">Email</label><input id="rg-email" class="input" type="text" placeholder="you@example.com"></div>
+    <div class="field"><label for="rg-phone">Mobile number</label><input id="rg-phone" class="input" type="text" placeholder="98XXXXXXXX"></div>
+    <div class="field"><label for="rg-pass">Password</label><input id="rg-pass" class="input" type="password" placeholder="At least 8 characters"></div>
+    <div class="field"><label for="rg-conf">Confirm password</label><input id="rg-conf" class="input" type="password" placeholder="Type it again"></div>
+    <p id="rg-error" class="error" role="alert" hidden></p>
+    <button id="rg-submit" class="btn btn-primary btn-block">Register</button>
+    <p style="margin:0;font-size:15px;text-align:center">Already have an account? <a href="login.html">Log in</a></p>
+  </div>
+</div>
+</main>
+</body>
+</html>

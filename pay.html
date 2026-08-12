@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Payment &middot; SajiloBazar</title>
+<link rel="stylesheet" href="styles.css">
+<script src="common.js" defer></script>
+<script src="pay.js" defer></script>
+</head>
+<body>
+<header class="site" id="site-header"></header>
+<main>
+<div style="max-width:460px;margin:20px auto 0">
+  <div class="card" style="padding:36px">
+    <div style="display:flex;align-items:center;gap:16px;margin-bottom:26px">
+      <div id="pay-badge" style="width:54px;height:54px;border-radius:999px;background:var(--sage-100);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-size:15px;color:var(--sage-800)"></div>
+      <div>
+        <h1 id="pay-title" style="font-size:26px;margin:0"></h1>
+        <p style="font-size:14px;margin:4px 0 0" class="muted">SajiloBazar merchant payment</p>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;background:var(--bg);border-radius:14px;padding:16px 20px;margin-bottom:24px">
+      <span style="font-size:15px">Amount to pay</span>
+      <span id="pay-total" style="font-family:var(--font-heading);font-size:26px;color:var(--accent-700)"></span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:18px">
+      <div class="field"><label for="pay-id" id="pay-id-label">Wallet mobile number</label><input id="pay-id" class="input" type="text" placeholder="98XXXXXXXX"></div>
+      <div class="field"><label for="pay-pin">MPIN</label><input id="pay-pin" class="input" type="password" placeholder="4-digit MPIN"></div>
+      <p id="pay-error" class="error" role="alert" hidden></p>
+      <button id="pay-submit" class="btn btn-primary btn-block">Pay</button>
+      <a class="btn btn-ghost btn-block" style="font-size:15px;text-decoration:none;text-align:center" href="checkout.html">Cancel and go back</a>
+    </div>
+  </div>
+  <p style="font-size:13px;text-align:center;margin:18px 0 0" class="muted">Test wallet: 9812345678 &nbsp;&middot;&nbsp; MPIN 1234</p>
+</div>
+</main>
+</body>
+</html>

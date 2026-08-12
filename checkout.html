@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout &middot; SajiloBazar</title>
+<link rel="stylesheet" href="styles.css">
+<script src="common.js" defer></script>
+<script src="checkout.js" defer></script>
+</head>
+<body>
+<header class="site" id="site-header"></header>
+<main>
+<div style="max-width:560px;margin:0 auto">
+  <h1 style="font-size:34px;margin:0 0 8px">Checkout</h1>
+  <p style="font-size:16px;margin:0 0 30px" class="muted">Minimum order value is Rs 100.</p>
+  <div class="card" style="padding:34px;display:flex;flex-direction:column;gap:20px">
+    <div class="field"><label for="co-addr">Delivery address</label><input id="co-addr" class="input" type="text" placeholder="Ward, street, landmark"></div>
+    <div class="field"><label for="co-pay">Payment method</label>
+      <select id="co-pay" class="input"><option>eSewa</option><option>Khalti</option><option>Cash on delivery</option></select>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline;border-top:2px solid var(--neutral-200);padding-top:20px">
+      <span style="font-size:17px">Order total</span>
+      <span id="co-total" style="font-family:var(--font-heading);font-size:28px;color:var(--accent-700)"></span>
+    </div>
+    <p id="co-error" class="error" role="alert" hidden></p>
+    <button id="co-submit" class="btn btn-primary btn-block">Place order</button>
+  </div>
+</div>
+</main>
+</body>
+</html>
