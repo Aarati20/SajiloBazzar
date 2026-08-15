@@ -77,6 +77,12 @@ jobs:
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
 
+      # Vercel's Python runtime (v5+) uses `uv` instead of `pip` to install
+      # dependencies. The action below puts `uv` on PATH so `vercel build`
+      # can resolve requirements.txt for api/index.py.
+      - name: Install uv (required by Vercel Python runtime)
+        uses: astral-sh/setup-uv@v3
+
       - name: Pull Vercel environment
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
 
