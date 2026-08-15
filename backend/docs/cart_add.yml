@@ -1,0 +1,17 @@
+tags: [Cart]
+summary: Add a product to my cart (max 10 units per product).
+security:
+  - Bearer: []
+parameters:
+  - in: body
+    name: body
+    required: true
+    schema:
+      type: object
+      properties:
+        product_id: {type: integer, example: 1}
+        quantity:   {type: integer, example: 1}
+responses:
+  201: {description: "Added. Returns the cart item."}
+  400: {description: "Quantity limit exceeded."}
+  404: {description: "Product not found."}

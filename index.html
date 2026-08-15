@@ -2,10 +2,42 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta http-equiv="refresh" content="0; url=login.html">
 <title>SajiloBazar</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 60px auto; padding: 0 24px; line-height: 1.55; color: #222; }
+  code { background: #f4efe6; padding: 2px 6px; border-radius: 4px; }
+  pre { background: #f4efe6; padding: 12px 16px; border-radius: 8px; overflow-x: auto; }
+  a.btn { display: inline-block; background: #a24a1f; color: #fff; padding: 10px 18px; border-radius: 8px; text-decoration: none; margin-top: 12px; }
+  .warn { background: #fff5e6; border-left: 4px solid #d97b18; padding: 14px 18px; border-radius: 6px; }
+</style>
 </head>
 <body>
-<p>Opening SajiloBazar&hellip; <a href="login.html">Continue</a></p>
+<h1>SajiloBazar</h1>
+<div id="ok" hidden>
+  <p>Redirecting to the login page&hellip;</p>
+  <p><a class="btn" href="login.html">Continue</a></p>
+</div>
+
+<div id="file-warn" hidden>
+  <div class="warn">
+    <p><strong>You opened this file directly (<code>file://</code>).</strong></p>
+    <p>The app now talks to a Flask API, and browsers block network calls from
+    <code>file://</code> pages. Serve the folder over HTTP first:</p>
+    <pre>cd /Users/bhesh/Downloads/SajiloBazzar
+python3 -m http.server 8000</pre>
+    <p>Then open:</p>
+    <p><a class="btn" href="http://127.0.0.1:8000/login.html">http://127.0.0.1:8000/login.html</a></p>
+    <p style="margin-top:18px;font-size:14px" class="muted">Or use the live site: <a href="https://sajilo-bazzar.vercel.app/login.html">sajilo-bazzar.vercel.app</a></p>
+  </div>
+</div>
+
+<script>
+  if (location.protocol === 'file:') {
+    document.getElementById('file-warn').hidden = false;
+  } else {
+    document.getElementById('ok').hidden = false;
+    location.replace('login.html');
+  }
+</script>
 </body>
 </html>

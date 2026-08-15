@@ -1,0 +1,21 @@
+tags: [Cart]
+summary: Set the exact quantity for one cart item (or remove if 0).
+security:
+  - Bearer: []
+parameters:
+  - in: path
+    name: item_id
+    type: integer
+    required: true
+  - in: body
+    name: body
+    required: true
+    schema:
+      type: object
+      properties:
+        quantity: {type: integer, example: 3, minimum: 0, maximum: 10}
+responses:
+  200: {description: "Updated. Returns the cart item."}
+  204: {description: "Quantity was 0 → item removed."}
+  400: {description: "Quantity out of range (0-10)."}
+  404: {description: "Item not found."}

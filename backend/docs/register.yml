@@ -1,0 +1,17 @@
+tags: [Auth]
+summary: Create a new user account.
+parameters:
+  - in: body
+    name: body
+    required: true
+    schema:
+      type: object
+      required: [name, email, phone, password]
+      properties:
+        name:     {type: string, example: "Aarati Adhikari"}
+        email:    {type: string, example: "aarati@test.com"}
+        phone:    {type: string, example: "9812345678"}
+        password: {type: string, example: "test1234"}
+responses:
+  201: {description: "Created. Returns { token, user }."}
+  400: {description: "Missing/invalid fields or duplicate email."}
