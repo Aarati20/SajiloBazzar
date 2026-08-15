@@ -1,31 +1,54 @@
-name: Deploy to GitHub Pages
+name: PR Checks
 
 on:
-  push:
-    branches:
-      - main
-
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+  pull_request:
+    branches: [main]
 
 jobs:
-  deploy:
+  validate:
+    name: Validate code
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload site files
-        uses: actions/upload-pages-artifact@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          path: .
+          node-version: '20'
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Check JavaScript syntax
+        run: |
+          set -e
+          shopt -s nullglob
+          files=(*.js)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No .js files found."
+            exit 0
+          fi
+          for f in "${files[@]}"; do
+            echo "Checking $f"
+            node --check "$f"
+          done
+        shell: bash
+
+      - name: Install HTMLHint and Stylelint
+        run: npm install --no-save htmlhint stylelint stylelint-config-standard
+
+      - name: Create Stylelint config
+        run: |
+          cat > .stylelintrc.json <<'EOF'
+          {
+            "extends": ["stylelint-config-standard"],
+            "rules": {
+              "no-descending-specificity": null
+            }
+          }
+          EOF
+
+      - name: Validate HTML
+        run: npx htmlhint "*.html"
+
+      - name: Lint CSS
+        run: npx stylelint "*.css"
