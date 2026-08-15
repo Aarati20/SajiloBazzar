@@ -1,0 +1,4 @@
+tags: [Products]
+summary: List all products.
+responses:
+  200: {description: "Array of products."}

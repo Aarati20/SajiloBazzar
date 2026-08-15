@@ -1,0 +1,7 @@
+tags: [Cart]
+summary: Get my cart with line totals.
+security:
+  - Bearer: []
+responses:
+  200: {description: "{ items: [...], total }"}
+  401: {description: "Missing or invalid token."}

@@ -1,0 +1,7 @@
+tags: [Auth]
+summary: Get the current logged-in user.
+security:
+  - Bearer: []
+responses:
+  200: {description: "Current user profile."}
+  401: {description: "Missing or invalid token."}

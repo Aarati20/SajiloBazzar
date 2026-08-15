@@ -1,0 +1,6 @@
+tags: [Orders]
+summary: List my past orders (newest first).
+security:
+  - Bearer: []
+responses:
+  200: {description: "Orders list."}

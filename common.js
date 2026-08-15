@@ -1,13 +1,6 @@
-// SajiloBazar: shared data store, header, toast, requirements drawer
-var KEY = 'sajilobazar-multi-v1';
-var PRODUCTS = [
-  { id: 'P1', name: 'Cotton kurta', price: 1450, tag: 'Clothing' },
-  { id: 'P2', name: 'Bluetooth earbuds', price: 2299, tag: 'Electronics' },
-  { id: 'P3', name: 'Steel water bottle', price: 650, tag: 'Home' },
-  { id: 'P4', name: 'Ilam green tea', price: 340, tag: 'Grocery' },
-  { id: 'P5', name: 'Canvas backpack', price: 1899, tag: 'Bags' },
-  { id: 'P6', name: 'Notebook set', price: 95, tag: 'Stationery' }
-];
+// SajiloBazar shared UI: header, toast, requirements drawer, login guards.
+// All data now comes from the backend API (see api.js). No more localStorage DB.
+
 var REQS = [
   ['FR-1', 'A visitor can register with full name, email, mobile number and password.'],
   ['FR-2', 'The mobile number must be exactly 10 digits.'],
@@ -29,44 +22,64 @@ var REQS = [
   ['FR-18', 'Logging out clears the cart and returns the user to the login page.'],
   ['FR-19', 'A logged-out user cannot reach the shop, cart or checkout.'],
   ['FR-20', 'Choosing eSewa or Khalti opens a payment screen. Cash on delivery does not.'],
-  ['FR-21', 'The payment screen needs a registered wallet number and the correct 4-digit MPIN. A wrong MPIN must be rejected.'],
+  ['FR-21', 'The payment screen needs a registered wallet number and the correct 4-digit MPIN.'],
   ['FR-22', 'Cancelling on the payment screen returns the user to checkout with the cart untouched.'],
   ['NFR-1', 'Every error message tells the user exactly what to fix.']
 ];
 
-function loadDB() {
-  try {
-    var d = JSON.parse(localStorage.getItem(KEY));
-    if (d && d.users) return d;
-  } catch (e) {}
-  return {
-    users: [{ name: 'Aarati Adhikari', email: 'aarati@test.com', phone: '9812345678', password: 'test1234' }],
-    user: null, cart: [], orders: [], addr: '', payMethod: 'eSewa', orderId: ''
-  };
-}
-function saveDB(db) { localStorage.setItem(KEY, JSON.stringify(db)); }
-var DB = loadDB();
+// Cache the current user + cart count so the header can render synchronously.
+var CURRENT_USER = null;
+var CART_COUNT = 0;
 
-function requireLogin() { if (!DB.user) { location.href = 'login.html'; return false; } return true; }
-function redirectIfLoggedIn() { if (DB.user) location.href = 'shop.html'; }
-function cartCount() { return DB.cart.reduce(function (n, c) { return n + c.qty; }, 0); }
-function cartTotal() { return DB.cart.reduce(function (n, c) { return n + c.price * c.qty; }, 0); }
+// Fetch /me + /cart to warm the cache. Returns false if not logged in.
+async function loadSession() {
+  if (!getToken()) { CURRENT_USER = null; CART_COUNT = 0; return false; }
+  try {
+    CURRENT_USER = await api('/me');
+    var cart = await api('/cart');
+    CART_COUNT = (cart.items || []).reduce(function (n, i) { return n + i.quantity; }, 0);
+    return true;
+  } catch (e) {
+    // Token expired or bad — treat as logged out.
+    clearToken();
+    CURRENT_USER = null;
+    CART_COUNT = 0;
+    return false;
+  }
+}
+
+async function requireLogin() {
+  var ok = await loadSession();
+  if (!ok) { location.href = 'login.html'; return false; }
+  renderHeader();
+  return true;
+}
+
+async function redirectIfLoggedIn() {
+  if (getToken() && await loadSession()) location.href = 'shop.html';
+}
 
 function renderHeader() {
   var el = document.getElementById('site-header');
   if (!el) return;
   var nav = '', right = '';
-  if (DB.user) {
-    nav = '<nav><a href="shop.html">Shop</a><a href="cart.html">Cart (' + cartCount() + ')</a><a href="orders.html">My orders</a></nav>';
-    right = '<span style="font-size:14px" class="muted">' + DB.user.name + '</span> <button class="btn btn-secondary" style="font-size:14px;padding:8px 20px" onclick="logout()">Log out</button>';
+  if (CURRENT_USER) {
+    nav = '<nav><a href="shop.html">Shop</a>' +
+          '<a href="cart.html">Cart (' + CART_COUNT + ')</a>' +
+          '<a href="orders.html">My orders</a></nav>';
+    right = '<span style="font-size:14px" class="muted">' + CURRENT_USER.name + '</span> ' +
+            '<button class="btn btn-secondary" style="font-size:14px;padding:8px 20px" onclick="logout()">Log out</button>';
   }
   el.innerHTML = '<span class="brand">SajiloBazar</span>' + nav +
-    '<div style="flex:1"></div><button class="btn btn-ghost" style="font-size:14px;padding:8px 18px" onclick="openReqs()">Requirements</button>' + right;
+    '<div style="flex:1"></div>' +
+    '<button class="btn btn-ghost" style="font-size:14px;padding:8px 18px" onclick="openReqs()">Requirements</button>' +
+    right;
 }
 
 function logout() {
-  DB.user = null;
-  saveDB(DB);
+  clearToken();
+  CURRENT_USER = null;
+  CART_COUNT = 0;
   location.href = 'login.html';
 }
 
@@ -98,4 +111,8 @@ function openReqs() {
   document.body.appendChild(back);
 }
 
-document.addEventListener('DOMContentLoaded', renderHeader);
+// Render the header on page load. Pages that need login will call requireLogin()
+// themselves and re-render after the session is warm.
+document.addEventListener('DOMContentLoaded', function () {
+  loadSession().then(renderHeader);
+});
