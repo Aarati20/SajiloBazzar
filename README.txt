@@ -1,7 +1,12 @@
 SAJILOBAZAR: QA PRACTICE SHOP (multi-page version)
 
+Live site: https://sajilo-bazzar.vercel.app/login.html
+
 How to run: unzip the folder and open index.html (or login.html) in any browser.
 No server needed. Data is saved in the browser's localStorage.
+
+Deployment: the site is hosted on Vercel and deployed automatically by the
+GitHub Actions workflow in .github/workflows/deploy.yml on every push to main.
 
 Demo account: aarati@test.com / test1234
 Test wallet: 9812345678, MPIN 1234
