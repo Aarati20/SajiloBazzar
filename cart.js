@@ -1,5 +1,5 @@
 function lineTotal(c) {
-  return c.id === 'P1' && c.qty > 2 ? c.price * (c.qty - 1) : c.price * c.qty;
+   return c.price * c.qty;
 }
 function renderCart() {
   var area = document.getElementById('cart-area');
