@@ -1,5 +1,8 @@
 document.addEventListener('DOMContentLoaded', function () {
   redirectIfLoggedIn();
+  if (new URLSearchParams(location.search).get('registered') === '1') {
+    document.getElementById('li-notice').hidden = false;
+  }
   var err = document.getElementById('li-error');
   document.getElementById('li-submit').addEventListener('click', async function () {
     err.hidden = true;
