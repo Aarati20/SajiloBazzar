@@ -7,6 +7,5 @@ backend/sajilobazar.db
 *.sqlite3
 .env
 .env.*
-.github/
 .vscode/
 sajilo-*.png
