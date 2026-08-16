@@ -177,9 +177,11 @@ def register():
     user.set_password(data["password"])
     db.session.add(user)
     db.session.commit()
-    token = user.make_token()
-    resp = jsonify({"token": token, "user": user.to_dict()})
-    return _attach_auth_cookie(resp, token), 201
+    # Intentionally do NOT set the auth cookie here: the intended flow is
+    # register → login (with confirmation banner) → shop, not auto-login.
+    # The token is still returned in the JSON body for API consumers that
+    # want to log in immediately without a second request.
+    return jsonify({"token": user.make_token(), "user": user.to_dict()}), 201
 
 
 @app.post("/login")
