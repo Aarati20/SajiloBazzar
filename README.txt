@@ -15,8 +15,16 @@ How to run:
   3. Open http://localhost:8000/login.html
   4. Log in with the demo account below.
 
-All data now comes from the Flask + SQLite backend — the frontend keeps only
-the JWT token in localStorage.
+All data now comes from the Flask + SQLite backend. The frontend uses zero
+localStorage for app data. Auth lives in an HttpOnly cookie (`sajilo-token`)
+set by /login and /register — visible in DevTools → Application → Cookies,
+not readable from JavaScript. Every fetch runs with `credentials: 'include'`
+so the cookie flows to the API automatically.
+
+Registration flow: register → login (with "Account created — please log in."
+banner, driven by ?registered=1 in the URL) → shop → cart → checkout → pay
+(for wallet flows, method + address passed as URL params, not localStorage)
+→ done?id=<order_id> (which fetches the order from GET /orders/<id>).
 
 Deployment: every push to main is deployed to Vercel automatically by the
 GitHub Actions workflow at .github/workflows/deploy.yml. Vercel serves the
@@ -37,17 +45,20 @@ Files:
   pay.html        + pay.js
   done.html       + done.js
   orders.html     + orders.js
-  api.js          fetch helper + JWT token storage (used by every page)
-  common.js       header, toast, requirements drawer, login guard (calls API)
+  api.js          fetch helper — sends the auth cookie via credentials:'include'
+  common.js       header, toast, requirements drawer, login guard
+                  (probes /me to decide "am I logged in?" since the cookie
+                  is HttpOnly and can't be read from JS)
   styles.css      the only stylesheet
 
 Click the Requirements button in the header to see the 23 rules (FR-1 to FR-22, NFR-1).
 Test the app against them. The app contains planted bugs: find them, reproduce them,
 and report them with steps, expected result and actual result.
 
-To reset the frontend session: open the browser console and run
-`localStorage.clear()`, then reload. (This only clears the JWT token — data
-lives in the SQLite database now. To reset that, see the BACKEND section.)
+To reset the frontend session: click Log out in the header (calls POST /logout
+which clears the auth cookie), or delete the `sajilo-token` cookie via
+DevTools → Application → Cookies, then reload. Data lives in the database —
+to reset that, see the BACKEND section.
 
 
 ================================================================================
@@ -64,9 +75,13 @@ Stack
   - Flask-SQLAlchemy           ORM on top of SQLAlchemy 2
   - SQLite                     database — one file, no server, built into Python
   - flasgger                   auto-generated Swagger UI at /docs
-  - PyJWT                      Bearer JWT auth (24h expiry)
+  - PyJWT                      JWT auth (24h expiry). Sent as an HttpOnly
+                               cookie by default; legacy Authorization:
+                               Bearer header is still accepted as a fallback.
   - werkzeug.security          password hashing (pbkdf2)
   - Flask-Cors                 lets the static frontend call the API
+                               (supports_credentials=True so the auth cookie
+                                flows cross-port during local dev)
   - python-dotenv              loads .env
 
 --------------------------------------------------------------------------------
@@ -103,9 +118,14 @@ Environment variables (.env)
 
 .env is optional. Defaults work without it.
 
-  SECRET_KEY     Key used to sign JWTs. Change in production.
-  FLASK_APP      app.py (set so `flask run` finds it)
-  FLASK_DEBUG    1 = auto-reload on file changes
+  SECRET_KEY       Key used to sign JWTs. Change in production.
+  DATABASE_URL     Postgres connection string. Required on Vercel; local dev
+                   falls back to SQLite when unset.
+  ALLOWED_ORIGINS  Comma-separated CORS origins allowed to send the auth
+                   cookie. Local dev defaults (127.0.0.1:8000, localhost:8000,
+                   :5500) are always included; add your prod URL here.
+  FLASK_APP        app.py (set so `flask run` finds it)
+  FLASK_DEBUG      1 = auto-reload on file changes
 
 --------------------------------------------------------------------------------
 Swagger UI  →  http://localhost:5000/docs
@@ -136,18 +156,26 @@ In Postman:
 Endpoints
 --------------------------------------------------------------------------------
 
-  POST   /register           (public)  create account, returns { token, user }
-  POST   /login              (public)  exchange credentials for { token, user }
-  GET    /me                 (bearer)  current user profile
+  POST   /register           (public)  create account. Sets sajilo-token cookie
+                                       AND returns { token, user }.
+  POST   /login              (public)  exchange credentials. Sets sajilo-token
+                                       cookie AND returns { token, user }.
+  POST   /logout             (public)  clears the sajilo-token cookie
+  GET    /me                 (auth)    current user profile
 
   GET    /products           (public)  list all products
 
-  GET    /cart               (bearer)  { items:[...], total }
-  POST   /cart               (bearer)  add product (max 10 units per product)
-  DELETE /cart/<item_id>     (bearer)  remove one item
+  GET    /cart               (auth)    { items:[...], total }
+  POST   /cart               (auth)    add product (max 10 units per product)
+  PATCH  /cart/<item_id>     (auth)    set exact quantity (0 removes)
+  DELETE /cart/<item_id>     (auth)    remove one item
 
-  POST   /orders             (bearer)  place order from cart (min Rs 100)
-  GET    /orders             (bearer)  list my past orders
+  POST   /orders             (auth)    place order from cart (min Rs 100)
+  GET    /orders             (auth)    list my past orders
+  GET    /orders/<id>        (auth)    fetch a single order (used by done.html)
+
+(auth) endpoints accept either the sajilo-token cookie (preferred) or a
+legacy Authorization: Bearer <jwt> header.
 
 Business rules enforced by the API (mirrors the frontend FR list):
   - FR-2   registration phone must be exactly 10 digits
