@@ -2,7 +2,9 @@
 document.addEventListener('DOMContentLoaded', async function () {
   if (!(await requireLogin())) return;
 
-  var method = localStorage.getItem('sajilo-pay-method') || 'eSewa';
+  var params = new URLSearchParams(location.search);
+  var method = params.get('method') || 'eSewa';
+  var addr = params.get('address') || '';
   document.getElementById('pay-badge').textContent = method;
   document.getElementById('pay-title').textContent = 'Pay with ' + method;
   document.getElementById('pay-id-label').textContent = method + ' mobile number';
@@ -20,16 +22,13 @@ document.addEventListener('DOMContentLoaded', async function () {
     if (!/^\d{4}$/.test(pin))     { err.textContent = 'Enter your 4-digit MPIN.'; err.hidden = false; return; }
     if (pin !== '1234')           { err.textContent = 'Incorrect MPIN.'; err.hidden = false; return; }
 
-    var addr = localStorage.getItem('sajilo-pending-address') || '';
     try {
       var apiMethod = method === 'Khalti' ? 'khalti' : 'esewa';
       var res = await api('/orders', {
         method: 'POST',
         body: { address: addr, payment_method: apiMethod },
       });
-      localStorage.setItem('sajilo-last-order', JSON.stringify(res));
-      localStorage.removeItem('sajilo-pending-address');
-      location.href = 'done.html';
+      location.href = 'done.html?id=' + res.id;
     } catch (e) {
       err.textContent = e.message;
       err.hidden = false;

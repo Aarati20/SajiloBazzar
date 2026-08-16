@@ -16,21 +16,19 @@
   }
 })();
 
-var TOKEN_KEY = 'sajilo-token';
-function getToken()  { return localStorage.getItem(TOKEN_KEY); }
-function setToken(t) { localStorage.setItem(TOKEN_KEY, t); }
-function clearToken(){ localStorage.removeItem(TOKEN_KEY); }
+// Auth lives in an HttpOnly cookie set by the backend on /login and /register,
+// so nothing is stored client-side. `credentials: 'include'` tells the browser
+// to send the cookie on every request (including cross-origin during local dev).
 
 // Call the API. Returns parsed JSON on success, throws Error(message) on failure.
 async function api(path, opts) {
   opts = opts || {};
   var headers = { 'Content-Type': 'application/json' };
-  var token = getToken();
-  if (token) headers['Authorization'] = 'Bearer ' + token;
 
   var res = await fetch(window.API_BASE + path, {
     method: opts.method || 'GET',
     headers: headers,
+    credentials: 'include',
     body: opts.body ? JSON.stringify(opts.body) : undefined,
   });
 

@@ -32,16 +32,15 @@ var CURRENT_USER = null;
 var CART_COUNT = 0;
 
 // Fetch /me + /cart to warm the cache. Returns false if not logged in.
+// The auth cookie is HttpOnly so we can't check it from JS — /me itself is
+// the "am I logged in?" probe (401 → not logged in).
 async function loadSession() {
-  if (!getToken()) { CURRENT_USER = null; CART_COUNT = 0; return false; }
   try {
     CURRENT_USER = await api('/me');
     var cart = await api('/cart');
     CART_COUNT = (cart.items || []).reduce(function (n, i) { return n + i.quantity; }, 0);
     return true;
   } catch (e) {
-    // Token expired or bad — treat as logged out.
-    clearToken();
     CURRENT_USER = null;
     CART_COUNT = 0;
     return false;
@@ -56,7 +55,7 @@ async function requireLogin() {
 }
 
 async function redirectIfLoggedIn() {
-  if (getToken() && await loadSession()) location.href = 'shop.html';
+  if (await loadSession()) location.href = 'shop.html';
 }
 
 function renderHeader() {
@@ -76,8 +75,8 @@ function renderHeader() {
     right;
 }
 
-function logout() {
-  clearToken();
+async function logout() {
+  try { await api('/logout', { method: 'POST' }); } catch (e) {}
   CURRENT_USER = null;
   CART_COUNT = 0;
   location.href = 'login.html';

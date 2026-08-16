@@ -20,7 +20,7 @@ from flasgger import Swagger, swag_from
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-from auth import login_required
+from auth import AUTH_COOKIE, login_required
 from database import db
 from models import CartItem, Order, Product, User
 
@@ -65,7 +65,19 @@ if db_url.startswith("postgresql"):
 print(f" * Database: {app.config['SQLALCHEMY_DATABASE_URI']}")
 
 db.init_app(app)
-CORS(app)
+
+# Auth is now a cookie, so browsers must send credentials cross-origin.
+# supports_credentials=True forbids "*" as Access-Control-Allow-Origin, so we
+# whitelist local static-server ports and honour ALLOWED_ORIGINS in prod.
+_default_origins = [
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+    "http://127.0.0.1:5500",  # VS Code Live Server
+    "http://localhost:5500",
+]
+_extra = os.getenv("ALLOWED_ORIGINS", "")
+allowed_origins = _default_origins + [o.strip() for o in _extra.split(",") if o.strip()]
+CORS(app, supports_credentials=True, origins=allowed_origins)
 
 Swagger(
     app,
@@ -125,6 +137,24 @@ with app.app_context():
 
 # ----- Auth routes ---------------------------------------------------------
 
+AUTH_COOKIE_MAX_AGE = 60 * 60 * 24  # 24h, matches User.make_token default
+
+
+def _attach_auth_cookie(resp, token):
+    """Set the auth JWT as an HttpOnly cookie so JS can never read it.
+    Secure only in HTTPS (Vercel); SameSite=Lax handles same-site cross-port.
+    """
+    resp.set_cookie(
+        AUTH_COOKIE,
+        token,
+        max_age=AUTH_COOKIE_MAX_AGE,
+        httponly=True,
+        secure=IS_VERCEL,
+        samesite="Lax",
+        path="/",
+    )
+    return resp
+
 
 @app.post("/register")
 @swag_from("docs/register.yml")
@@ -147,7 +177,9 @@ def register():
     user.set_password(data["password"])
     db.session.add(user)
     db.session.commit()
-    return jsonify({"token": user.make_token(), "user": user.to_dict()}), 201
+    token = user.make_token()
+    resp = jsonify({"token": token, "user": user.to_dict()})
+    return _attach_auth_cookie(resp, token), 201
 
 
 @app.post("/login")
@@ -160,7 +192,17 @@ def login():
         return jsonify({"error": "Email not found"}), 401
     if not user.check_password(data.get("password") or ""):
         return jsonify({"error": "Incorrect password"}), 401
-    return jsonify({"token": user.make_token(), "user": user.to_dict()})
+    token = user.make_token()
+    resp = jsonify({"token": token, "user": user.to_dict()})
+    return _attach_auth_cookie(resp, token)
+
+
+@app.post("/logout")
+def logout():
+    """Clear the auth cookie."""
+    resp = jsonify({"ok": True})
+    resp.delete_cookie(AUTH_COOKIE, path="/")
+    return resp
 
 
 @app.get("/me")
@@ -283,6 +325,16 @@ def my_orders():
         .all()
     )
     return jsonify([o.to_dict() for o in rows])
+
+
+@app.get("/orders/<int:order_id>")
+@login_required
+def get_order(order_id):
+    """Fetch a single order (must belong to the current user)."""
+    order = Order.query.filter_by(id=order_id, user_id=request.user.id).first()
+    if not order:
+        return jsonify({"error": "Order not found"}), 404
+    return jsonify(order.to_dict())
 
 
 # ----- `flask seed` --------------------------------------------------------
