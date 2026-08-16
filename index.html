@@ -3,6 +3,12 @@
 <head>
 <meta charset="utf-8">
 <title>SajiloBazar</title>
+<script>
+  // Redirect to login BEFORE any body content paints, so users never see a
+  // flash of this landing page. The file:// branch below still shows the
+  // "serve over HTTP" warning for people who double-click the file.
+  if (location.protocol !== 'file:') location.replace('login.html');
+</script>
 <style>
   body { font-family: system-ui, sans-serif; max-width: 640px; margin: 60px auto; padding: 0 24px; line-height: 1.55; color: #222; }
   code { background: #f4efe6; padding: 2px 6px; border-radius: 4px; }
@@ -12,13 +18,8 @@
 </style>
 </head>
 <body>
-<h1>SajiloBazar</h1>
-<div id="ok" hidden>
-  <p>Redirecting to the login page&hellip;</p>
-  <p><a class="btn" href="login.html">Continue</a></p>
-</div>
-
 <div id="file-warn" hidden>
+  <h1>SajiloBazar</h1>
   <div class="warn">
     <p><strong>You opened this file directly (<code>file://</code>).</strong></p>
     <p>The app now talks to a Flask API, and browsers block network calls from
@@ -34,9 +35,6 @@ python3 -m http.server 8000</pre>
 <script>
   if (location.protocol === 'file:') {
     document.getElementById('file-warn').hidden = false;
-  } else {
-    document.getElementById('ok').hidden = false;
-    location.replace('login.html');
   }
 </script>
 </body>

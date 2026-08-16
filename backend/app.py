@@ -32,8 +32,20 @@ app = Flask(__name__)
 
 # Local dev: SQLite file next to app.py — zero setup.
 # Vercel / prod: set DATABASE_URL env var (Neon / Vercel Postgres etc).
+# Vercel's filesystem is read-only outside /tmp, so SQLite there is fatal —
+# fail fast with a clear message instead of the generic "A server error has occurred".
+IS_VERCEL = bool(os.getenv("VERCEL"))
 DB_PATH = os.path.join(os.path.dirname(__file__), "sajilobazar.db")
-db_url = os.getenv("DATABASE_URL") or f"sqlite:///{DB_PATH}"
+db_url = os.getenv("DATABASE_URL")
+if not db_url:
+    if IS_VERCEL:
+        raise RuntimeError(
+            "DATABASE_URL is not set. On Vercel you must configure a Postgres "
+            "database (Neon or Vercel Postgres) and expose its connection "
+            "string as the DATABASE_URL environment variable."
+        )
+    db_url = f"sqlite:///{DB_PATH}"
+
 # Neon / Heroku give you postgres:// — SQLAlchemy 2 wants postgresql://
 if db_url.startswith("postgres://"):
     db_url = db_url.replace("postgres://", "postgresql://", 1)
@@ -41,6 +53,14 @@ if db_url.startswith("postgres://"):
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "change-me-in-production")
+
+# Serverless-friendly pool settings for Postgres: recycle stale connections and
+# check them before use so cold-started functions don't hit dead sockets.
+if db_url.startswith("postgresql"):
+    app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+    }
 
 print(f" * Database: {app.config['SQLALCHEMY_DATABASE_URI']}")
 

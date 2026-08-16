@@ -36,7 +36,15 @@ async function api(path, opts) {
 
   if (res.status === 204) return null;              // No Content
   var text = await res.text();
-  var data = text ? JSON.parse(text) : null;
+  var data = null;
+  if (text) {
+    try { data = JSON.parse(text); }
+    catch (_) {
+      // Non-JSON body (e.g. Vercel's "A server error has occurred" 500 page).
+      var snippet = text.replace(/\s+/g, ' ').trim().slice(0, 160);
+      throw new Error('Server error (HTTP ' + res.status + '): ' + snippet);
+    }
+  }
   if (!res.ok) {
     var msg = (data && data.error) ? data.error : ('HTTP ' + res.status);
     throw new Error(msg);

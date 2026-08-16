@@ -19,12 +19,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (pass !== conf) return fail('The two passwords do not match.');
 
     try {
-      var res = await api('/register', {
+      await api('/register', {
         method: 'POST',
         body: { name: name, email: email, phone: phone, password: pass },
       });
-      setToken(res.token);
-      location.href = 'shop.html';
+      location.href = 'login.html?registered=1';
     } catch (e) {
       fail(e.message);
     }
