@@ -126,6 +126,45 @@ a:focus-visible {
   background: #fff;
 }
 
+.password-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-field .input {
+  flex: 1;
+  padding-right: 46px;
+  min-width: 0;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: 0;
+  padding: 8px;
+  cursor: pointer;
+  color: var(--accent-700);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.password-toggle:hover {
+  color: var(--accent-800);
+}
+
+.password-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+}
+
 .card {
   background: var(--surface);
   border-radius: var(--radius);
