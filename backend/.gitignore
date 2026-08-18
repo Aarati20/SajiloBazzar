@@ -1,0 +1,10 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+.env
+instance/
+migrations/versions/*.pyc
+sajilobazar.db
+*.sqlite
+*.sqlite3

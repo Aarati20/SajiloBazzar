@@ -1,0 +1,16 @@
+tags: [Orders]
+summary: Place an order from the cart (min Rs 100).
+security:
+  - Bearer: []
+parameters:
+  - in: body
+    name: body
+    required: true
+    schema:
+      type: object
+      properties:
+        address:        {type: string, example: "Baneshwor, Kathmandu"}
+        payment_method: {type: string, example: "cod", enum: [esewa, khalti, cod]}
+responses:
+  201: {description: "Order placed."}
+  400: {description: "Cart empty, below minimum, or invalid method."}

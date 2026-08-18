@@ -1,0 +1,14 @@
+tags: [Auth]
+summary: Log in and get a JWT.
+parameters:
+  - in: body
+    name: body
+    required: true
+    schema:
+      type: object
+      properties:
+        email:    {type: string, example: "aarati@test.com"}
+        password: {type: string, example: "test1234"}
+responses:
+  200: {description: "OK. Returns { token, user }."}
+  401: {description: "Email not found or incorrect password."}

@@ -1,33 +1,41 @@
-function completeOrder() {
-  var id = 'ORD-' + (1000 + DB.orders.length + 1);
-  var summary = DB.cart.map(function (c) { return c.name + ' x' + c.qty; }).join(', ');
-  DB.orders.push({ id: id, summary: summary, total: cartTotal(), pay: DB.payMethod });
-  DB.cart = [];
-  DB.orderId = id;
-  DB.addr = '';
-  saveDB(DB);
-  location.href = 'done.html';
-}
-document.addEventListener('DOMContentLoaded', function () {
-  if (!requireLogin()) return;
-  document.getElementById('co-total').textContent = 'Rs ' + cartTotal();
+// UI-label ↔ API-value mapping for payment method.
+var PAY_UI_TO_API = { 'eSewa': 'esewa', 'Khalti': 'khalti', 'Cash on delivery': 'cod' };
+
+document.addEventListener('DOMContentLoaded', async function () {
+  if (!(await requireLogin())) return;
+
+  var cart = await api('/cart');
+  document.getElementById('co-total').textContent = 'Rs ' + cart.total;
+
   var pay = document.getElementById('co-pay');
-  pay.value = DB.payMethod || 'eSewa';
   var err = document.getElementById('co-error');
-  document.getElementById('co-submit').addEventListener('click', function () {
+  document.getElementById('co-submit').addEventListener('click', async function () {
+    err.hidden = true;
     var addr = document.getElementById('co-addr').value.trim();
-    DB.payMethod = pay.value;
+    var method = pay.value;
+
     if (!addr) {
       err.textContent = 'Delivery address is required.';
       err.hidden = false;
-      DB.payMethod = 'eSewa';
-      pay.value = 'eSewa';
-      saveDB(DB);
       return;
     }
-    DB.addr = addr;
-    saveDB(DB);
-    if (DB.payMethod !== 'Cash on delivery') { location.href = 'pay.html'; return; }
-    completeOrder();
+
+    // Wallet flows go to the pay screen; COD places the order immediately.
+    if (method !== 'Cash on delivery') {
+      location.href = 'pay.html?method=' + encodeURIComponent(method) +
+                      '&address=' + encodeURIComponent(addr);
+      return;
+    }
+
+    try {
+      var res = await api('/orders', {
+        method: 'POST',
+        body: { address: addr, payment_method: PAY_UI_TO_API[method] || 'cod' },
+      });
+      location.href = 'done.html?id=' + res.id;
+    } catch (e) {
+      err.textContent = e.message;
+      err.hidden = false;
+    }
   });
 });

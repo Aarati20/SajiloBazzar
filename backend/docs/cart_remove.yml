@@ -1,0 +1,12 @@
+tags: [Cart]
+summary: Remove one item from my cart.
+security:
+  - Bearer: []
+parameters:
+  - in: path
+    name: item_id
+    type: integer
+    required: true
+responses:
+  204: {description: "Removed."}
+  404: {description: "Item not found."}
