@@ -14,6 +14,7 @@ OpenAPI JSON:  http://localhost:5000/apispec_1.json   (import into Postman)
 """
 
 import os
+import re
 
 from dotenv import load_dotenv
 from flasgger import Swagger, swag_from
@@ -139,6 +140,12 @@ with app.app_context():
 
 AUTH_COOKIE_MAX_AGE = 60 * 60 * 24  # 24h, matches User.make_token default
 
+EMAIL_RE = re.compile(
+    r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+"
+    r"@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?"
+    r"(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$"
+)
+
 
 def _attach_auth_cookie(resp, token):
     """Set the auth JWT as an HttpOnly cookie so JS can never read it.
@@ -164,6 +171,8 @@ def register():
     for field in ("name", "email", "phone", "password"):
         if not data.get(field):
             return jsonify({"error": f"{field} is required"}), 400
+    if not EMAIL_RE.match(data["email"]):
+        return jsonify({"error": "Invalid email format"}), 400
     if len(data["phone"]) != 10 or not data["phone"].isdigit():
         return jsonify({"error": "Phone must be exactly 10 digits"}), 400
     if len(data["password"]) < 8:
@@ -189,7 +198,10 @@ def register():
 def login():
     """Log in and get a JWT."""
     data = request.get_json() or {}
-    user = User.query.filter_by(email=(data.get("email") or "").lower()).first()
+    email = (data.get("email") or "").strip()
+    if not EMAIL_RE.match(email):
+        return jsonify({"error": "Invalid email format"}), 400
+    user = User.query.filter_by(email=email.lower()).first()
     if not user:
         return jsonify({"error": "Email not found"}), 401
     if not user.check_password(data.get("password") or ""):
