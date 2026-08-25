@@ -166,7 +166,10 @@ Endpoints
   GET    /products           (public)  list all products
 
   GET    /cart               (auth)    { items:[...], total }
-  POST   /cart               (auth)    add product (max 10 units per product)
+  POST   /cart               (auth)    add a product, or several at once via
+                                       { items:[...] } or parallel
+                                       product_id/quantity lists
+                                       (max 10 units each, 20 per request)
   PATCH  /cart/<item_id>     (auth)    set exact quantity (0 removes)
   DELETE /cart/<item_id>     (auth)    remove one item
 
@@ -203,6 +206,21 @@ Sample requests (curl)
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
     -d '{"product_id":1,"quantity":2}'
+
+  # 3b. add several products in one request (all-or-nothing, max 20 lines).
+  #     Responds with { items:[...] } instead of a single item.
+  curl -X POST http://localhost:5000/cart \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d '{"items":[{"product_id":1,"quantity":2},{"product_id":2,"quantity":3}]}'
+
+  # 3c. the same batch written as two parallel lists, paired by position.
+  #     quantity may also be a single number for every product, or left out
+  #     (defaults to 1); as a list it must match product_id in length.
+  curl -X POST http://localhost:5000/cart \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d '{"product_id":[1,2],"quantity":[2,3]}'
 
   # 4. place a Cash-on-Delivery order
   curl -X POST http://localhost:5000/orders \
@@ -267,7 +285,7 @@ Layout
       __init__.py         imports every model so SQLAlchemy sees them
       user.py             User      + set/check_password, make_token, from_token
       product.py          Product   + to_dict
-      cart_item.py        CartItem  + line_total, add_for_user
+      cart_item.py        CartItem  + line_total, add_for_user, add_many_for_user
       order.py            Order     + create_from_cart (empty/min-total check)
     docs/                 one YAML per endpoint, loaded via flasgger @swag_from
       register.yml
