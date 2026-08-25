@@ -34,8 +34,8 @@ class User(db.Model):
 
     # ---- token helpers ----
 
-    def make_token(self, hours=24):
-        """Sign and return a JWT for this user (default expiry: 24 hours)."""
+    def make_token(self, hours=24 * 7):
+        """Sign and return a JWT for this user (default expiry: 7 days)."""
         payload = {
             "user_id": self.id,
             "exp": datetime.now(timezone.utc) + timedelta(hours=hours),

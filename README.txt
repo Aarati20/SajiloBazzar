@@ -75,7 +75,7 @@ Stack
   - Flask-SQLAlchemy           ORM on top of SQLAlchemy 2
   - SQLite                     database — one file, no server, built into Python
   - flasgger                   auto-generated Swagger UI at /docs
-  - PyJWT                      JWT auth (24h expiry). Sent as an HttpOnly
+  - PyJWT                      JWT auth (7-day expiry). Sent as an HttpOnly
                                cookie by default; legacy Authorization:
                                Bearer header is still accepted as a fallback.
   - werkzeug.security          password hashing (pbkdf2)
