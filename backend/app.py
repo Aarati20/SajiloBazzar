@@ -240,12 +240,36 @@ def list_products():
 # ----- Cart routes ---------------------------------------------------------
 
 
+# One POST /cart may carry this many lines — enough for a whole cart at once
+# without letting a single request fan out unbounded database work.
+MAX_BATCH_ITEMS = 20
+
+
+def _valid_quantity(value, minimum):
+    """True if `value` is a real int inside [minimum, MAX_QUANTITY].
+
+    `isinstance(True, int)` is True in Python, so bools are excluded explicitly
+    — otherwise {"quantity": true} would sneak through as 1.
+    """
+    return (
+        isinstance(value, int)
+        and not isinstance(value, bool)
+        and minimum <= value <= CartItem.MAX_QUANTITY
+    )
+
+
 @app.get("/cart")
 @login_required
 @swag_from("docs/cart_get.yml")
 def get_cart():
     """Show my cart with line totals."""
-    items = CartItem.query.filter_by(user_id=request.user.id).all()
+    # order_by keeps the rows stable: without it Postgres returns updated rows
+    # last, so changing a quantity would reshuffle the cart on the next load.
+    items = (
+        CartItem.query.filter_by(user_id=request.user.id)
+        .order_by(CartItem.id)
+        .all()
+    )
     return jsonify(
         {
             "items": [i.to_dict() for i in items],
@@ -254,22 +278,127 @@ def get_cart():
     )
 
 
+def _parse_cart_line(line, prefix):
+    """Validate one add-to-cart line into a (product, quantity) pair.
+
+    Returns (pair, None) or (None, (message, status)). A missing product is a
+    404 like the single-item form has always answered; everything else is 400.
+    `prefix` labels which batch line failed and is empty for the single form.
+    """
+    if not isinstance(line, dict):
+        return None, (f"{prefix}must be an object", 400)
+
+    product_id = line.get("product_id")
+    if not isinstance(product_id, int) or isinstance(product_id, bool):
+        return None, (f"{prefix}product_id must be an integer", 400)
+
+    product = Product.query.get(product_id)
+    if not product:
+        return None, (f"{prefix}Product not found", 404)
+
+    quantity = line.get("quantity", 1)
+    if not _valid_quantity(quantity, 1):
+        return None, (
+            f"{prefix}Quantity must be 1-{CartItem.MAX_QUANTITY}",
+            400,
+        )
+
+    return (product, quantity), None
+
+
+def _cart_lines(data):
+    """Split an add-to-cart body into one dict per product.
+
+    Three accepted shapes:
+      {"product_id": 1, "quantity": 2}                one product
+      {"items": [{...}, {...}]}                       a list of lines
+      {"product_id": [15, 13], "quantity": [3, 4]}    parallel lists, paired
+                                                      up by position
+
+    Returns (lines, label, error). `label` is a format string that prefixes an
+    error with the index that failed; it is None for the single form, which
+    keeps its historical unprefixed messages, and doubles as the "answer with a
+    list" flag. `error` is (message, status) or None.
+    """
+    if "items" in data:
+        lines = data["items"]
+        if not isinstance(lines, list) or not lines:
+            return None, None, ("items must be a non-empty list", 400)
+        return lines, "items[{}]: ", None
+
+    product_ids = data.get("product_id")
+    if isinstance(product_ids, list):
+        if not product_ids:
+            return None, None, ("product_id list must not be empty", 400)
+
+        # quantity may be omitted, given once for every product, or given as a
+        # list paired with product_id by position.
+        quantities = data.get("quantity", 1)
+        if isinstance(quantities, list):
+            # Zipping to the shorter list would silently pair quantities with
+            # the wrong products, so a mismatch has to be an error.
+            if len(quantities) != len(product_ids):
+                return (
+                    None,
+                    None,
+                    (
+                        "product_id and quantity must be lists of the same "
+                        f"length ({len(product_ids)} vs {len(quantities)})",
+                        400,
+                    ),
+                )
+        else:
+            quantities = [quantities] * len(product_ids)
+
+        lines = [
+            {"product_id": product_id, "quantity": quantity}
+            for product_id, quantity in zip(product_ids, quantities)
+        ]
+        # "index N: " rather than "product_id[N]: " — the latter stutters in
+        # front of the "product_id must be an integer" message.
+        return lines, "index {}: ", None
+
+    return [data], None, None
+
+
 @app.post("/cart")
 @login_required
 @swag_from("docs/cart_add.yml")
 def add_to_cart():
-    """Add a product to my cart (max 10 units per product)."""
+    """Add one product — or a batch of them — to my cart (max 10 units each)."""
     data = request.get_json() or {}
-    product = Product.query.get(data.get("product_id"))
-    if not product:
-        return jsonify({"error": "Product not found"}), 404
 
-    item, err = CartItem.add_for_user(
-        request.user.id, product, int(data.get("quantity", 1))
-    )
+    lines, label, err = _cart_lines(data)
+    if err:
+        message, status = err
+        return jsonify({"error": message}), status
+
+    batch = label is not None
+    if batch and len(lines) > MAX_BATCH_ITEMS:
+        return (
+            jsonify({"error": f"At most {MAX_BATCH_ITEMS} items per request"}),
+            400,
+        )
+
+    # Validate every line before touching the cart: a batch that fails halfway
+    # through would leave the user with a partly-applied order.
+    pairs = []
+    for index, line in enumerate(lines):
+        pair, err = _parse_cart_line(line, label.format(index) if batch else "")
+        if err:
+            message, status = err
+            return jsonify({"error": message}), status
+        pairs.append(pair)
+
+    items, err = CartItem.add_many_for_user(request.user.id, pairs)
     if err:
         return jsonify({"error": err}), 400
-    return jsonify(item.to_dict()), 201
+
+    if batch:
+        # Repeated products are merged, so this list can be shorter than the
+        # request — one row per distinct product.
+        return jsonify({"items": [i.to_dict() for i in items]}), 201
+    return jsonify(items[0].to_dict()), 201
 
 
 @app.patch("/cart/<int:item_id>")
@@ -278,13 +407,15 @@ def add_to_cart():
 def update_cart_item(item_id):
     """Set the exact quantity for one cart item (0 removes it)."""
     data = request.get_json() or {}
-    qty = data.get("quantity")
-    if not isinstance(qty, int) or qty < 0 or qty > CartItem.MAX_QUANTITY:
-        return jsonify({"error": f"Quantity must be 0-{CartItem.MAX_QUANTITY}"}), 400
-
+    # Ownership first: a bad quantity on someone else's item_id must still
+    # read as 404, not 400 — a 400 would confirm that the row exists.
     item = CartItem.query.filter_by(id=item_id, user_id=request.user.id).first()
     if not item:
         return jsonify({"error": "Item not found"}), 404
+
+    qty = data.get("quantity")
+    if not _valid_quantity(qty, 0):
+        return jsonify({"error": f"Quantity must be 0-{CartItem.MAX_QUANTITY}"}), 400
 
     if qty == 0:
         db.session.delete(item)

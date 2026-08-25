@@ -1,5 +1,24 @@
 tags: [Cart]
-summary: Add a product to my cart (max 10 units per product).
+summary: Add one product, or several at once, to my cart (max 10 units per product).
+description: >
+  Three accepted body shapes, up to 20 products per request:
+
+
+  1. one product — {"product_id": 1, "quantity": 2}
+
+
+  2. a list of lines — {"items": [{"product_id": 15, "quantity": 3}, ...]}
+
+
+  3. parallel lists paired by position —
+  {"product_id": [15, 13], "quantity": [3, 4]}. quantity may also be a single
+  number applied to every product, or left out (defaults to 1); if it is a
+  list it must be exactly as long as product_id.
+
+
+  Shapes 2 and 3 are all-or-nothing and answer with {"items": [...]}, one row
+  per distinct product; shape 1 answers with the single cart item. Repeated
+  products are summed, so a batch can never push one past the 10-unit limit.
 security:
   - Bearer: []
 parameters:
@@ -8,10 +27,23 @@ parameters:
     required: true
     schema:
       type: object
+      description: >
+        product_id and quantity are integers in shape 1 and arrays of integers
+        in shape 3 (Swagger 2.0 cannot express the either/or, see the examples
+        in the endpoint description).
       properties:
         product_id: {type: integer, example: 1}
-        quantity:   {type: integer, example: 1}
+        quantity:   {type: integer, example: 1, minimum: 1, maximum: 10}
+        items:
+          type: array
+          maxItems: 20
+          items:
+            type: object
+            required: [product_id]
+            properties:
+              product_id: {type: integer, example: 2}
+              quantity:   {type: integer, example: 3, minimum: 1, maximum: 10}
 responses:
-  201: {description: "Added. Returns the cart item."}
-  400: {description: "Quantity limit exceeded."}
+  201: {description: "Added. Returns the cart item, or {items:[...]} for a batch."}
+  400: {description: "Quantity out of range (1-10), product_id not an integer, mismatched product_id/quantity lists, or over 20 items."}
   404: {description: "Product not found."}
