@@ -138,7 +138,7 @@ with app.app_context():
 
 # ----- Auth routes ---------------------------------------------------------
 
-AUTH_COOKIE_MAX_AGE = 60 * 60 * 24  # 24h, matches User.make_token default
+AUTH_COOKIE_MAX_AGE = 60 * 60 * 24 * 7  # 7 days, matches User.make_token default
 
 EMAIL_RE = re.compile(
     r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+"
