@@ -1,0 +1,11 @@
+{
+  "name": "sajilobazar-e2e",
+  "private": true,
+  "description": "Playwright end-to-end tests for SajiloBazar",
+  "scripts": {
+    "test": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  }
+}

@@ -8,3 +8,11 @@ backend/sajilobazar.db
 .env
 .env.*
 sajilo-*.png
+
+node_modules
+tests
+test-results
+playwright-report
+playwright.config.mjs
+package.json
+package-lock.json
