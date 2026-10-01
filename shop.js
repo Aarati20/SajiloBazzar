@@ -254,11 +254,14 @@ document.addEventListener('DOMContentLoaded', async function () {
   var grid = document.getElementById('grid');
   var search = document.getElementById('search');
   var dialog = document.getElementById('quick-view');
-  renderSkeletons();
+  // Only show loading placeholders if products take a noticeable time;
+  // on a fast load they would just flash grey for a moment.
+  var skeletonTimer = setTimeout(renderSkeletons, 300);
 
   // The first, unfiltered load is the full catalogue, so it doubles as the
   // source of the category list.
   var all = await loadProducts();
+  clearTimeout(skeletonTimer);
   if (all) {
     var categories = [];
     all.forEach(function (p) { if (categories.indexOf(p.tag) < 0) categories.push(p.tag); });

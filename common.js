@@ -119,6 +119,14 @@ function renderHeader() {
     '<button class="btn btn-ghost" style="font-size:14px;padding:8px 18px" onclick="openReqs()">Requirements</button>' +
     right + '</div>';
 
+  // Clicking the logo on the page it points to scrolls to the top instead
+  // of reloading the page.
+  el.querySelector('.brand').addEventListener('click', function (e) {
+    if (this.getAttribute('href') !== page) return;
+    e.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  });
+
   var toggle = el.querySelector('.menu-toggle');
   toggle.addEventListener('click', function () {
     var open = el.classList.toggle('menu-open');
