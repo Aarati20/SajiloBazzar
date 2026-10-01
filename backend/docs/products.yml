@@ -1,4 +1,24 @@
 tags: [Products]
-summary: List all products.
+summary: List products, optionally filtered by category and/or a search term.
+parameters:
+  - name: category
+    in: query
+    type: string
+    required: false
+    description: >
+      Only return products in this category (the product's `tag`), e.g.
+      "Grocery". Case-insensitive exact match; blank returns every category.
+  - name: q
+    in: query
+    type: string
+    required: false
+    maxLength: 100
+    description: >
+      Case-insensitive search. Returns products whose name or tag contains
+      this text. Leading/trailing spaces are ignored; blank returns everything.
 responses:
-  200: {description: "Array of products."}
+  200:
+    description: >
+      Array of products (empty if nothing matches). Each has id, name, price,
+      tag (category), image_url (path relative to the site root) and description.
+  400: {description: "Search term longer than 100 characters."}

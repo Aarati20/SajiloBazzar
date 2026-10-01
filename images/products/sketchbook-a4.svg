@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img">
+<rect width="400" height="300" fill="#e7e1ee"/>
+<ellipse cx="200" cy="254" rx="120" ry="12" fill="#000" opacity=".07"/>
+<rect x="120" y="84" width="160" height="150" rx="6" fill="#fffaf0" stroke="#2b2825" stroke-width="4"/>
+<g fill="none" stroke="#2b2825" stroke-width="3"><path d="M134 76 Q140 76 140 92"/><path d="M148 76 Q154 76 154 92"/><path d="M162 76 Q168 76 168 92"/><path d="M176 76 Q182 76 182 92"/><path d="M190 76 Q196 76 196 92"/><path d="M204 76 Q210 76 210 92"/><path d="M218 76 Q224 76 224 92"/><path d="M232 76 Q238 76 238 92"/><path d="M246 76 Q252 76 252 92"/><path d="M260 76 Q266 76 266 92"/><path d="M274 76 Q280 76 280 92"/></g>
+<path d="M140 200 Q170 140 200 180 T260 150" fill="none" stroke="#4f7c8a" stroke-width="4"/>
+<circle cx="236" cy="122" r="14" fill="#e5a332"/>
+<g transform="rotate(-35 250 210)"><rect x="196" y="204" width="96" height="14" fill="#e5a332" stroke="#2b2825" stroke-width="3"/>
+<path d="M292 204 L312 211 L292 218Z" fill="#f4d9b0" stroke="#2b2825" stroke-width="3" stroke-linejoin="round"/></g>
+</svg>

@@ -8,6 +8,7 @@ Where things live:
   models/product.py  Product
   models/cart_item.py CartItem + line_total + add_for_user
   models/order.py    Order + create_from_cart
+  models/order_item.py OrderItem (a product line inside a placed order)
 
 Swagger docs:  http://localhost:5000/docs
 OpenAPI JSON:  http://localhost:5000/apispec_1.json   (import into Postman)
@@ -63,7 +64,16 @@ if db_url.startswith("postgresql"):
         "pool_recycle": 300,
     }
 
-print(f" * Database: {app.config['SQLALCHEMY_DATABASE_URI']}")
+def _safe_db_url():
+    """The database URL with any password replaced by ***, safe to print."""
+    from sqlalchemy.engine import make_url
+
+    return make_url(app.config["SQLALCHEMY_DATABASE_URI"]).render_as_string(
+        hide_password=True
+    )
+
+
+print(f" * Database: {_safe_db_url()}")
 
 db.init_app(app)
 
@@ -106,28 +116,85 @@ Swagger(
 
 # ----- Auto-create tables + seed on first startup --------------------------
 
+# (name, price, category, description). The image is derived from the name:
+# images/products/<slug>.svg in the frontend root.
 SAMPLE_PRODUCTS = [
-    ("Cotton kurta", 1450, "Clothing"),
-    ("Bluetooth earbuds", 2299, "Electronics"),
-    ("Steel water bottle", 650, "Home"),
-    ("Ilam green tea", 340, "Grocery"),
-    ("Canvas backpack", 1899, "Bags"),
-    ("Notebook set", 95, "Stationery"),
+    ("Cotton kurta", 1450, "Clothing", "Breathable handloom cotton kurta with a mandarin collar. Easy to wash, made for everyday wear."),
+    ("Dhaka topi", 650, "Clothing", "Traditional Nepali cap woven from Palpali dhaka fabric in classic red, black and orange."),
+    ("Pashmina shawl", 3200, "Clothing", "Soft, warm shawl hand-loomed from Himalayan pashmina with a fringed edge."),
+    ("Woolen socks", 299, "Clothing", "Hand-knitted sheep wool socks that keep your feet warm through Kathmandu winters."),
+    ("Bluetooth earbuds", 2299, "Electronics", "Wireless earbuds with a pocket charging case and up to 20 hours of total playtime."),
+    ("Power bank", 1799, "Electronics", "10,000 mAh power bank with USB-C fast charging, enough for two full phone charges."),
+    ("USB-C cable", 349, "Electronics", "1 m braided USB-C to USB-C cable that supports fast charging and data transfer."),
+    ("LED desk lamp", 1250, "Electronics", "Adjustable LED desk lamp with three brightness levels, easy on the eyes for late study."),
+    ("Steel water bottle", 650, "Home", "Insulated stainless steel bottle, 750 ml. Keeps water cold for 24 hours."),
+    ("Copper jug", 1150, "Home", "Hand-hammered pure copper jug, 1.5 L, for storing drinking water the traditional way."),
+    ("Ceramic mug set", 899, "Home", "Set of two glazed ceramic mugs, 300 ml each. Microwave and dishwasher safe."),
+    ("Cotton bedsheet", 1599, "Home", "Double bedsheet in soft printed cotton with two matching pillow covers."),
+    ("Ilam green tea", 340, "Grocery", "Hand-picked green tea leaves from the hills of Ilam, 100 g. Light and fresh."),
+    ("Himalayan pink salt", 180, "Grocery", "Natural rock salt from the Himalayas, 500 g jar, coarse ground."),
+    ("Basmati rice", 950, "Grocery", "Long-grain aged basmati rice, 5 kg bag. Fluffy and fragrant when cooked."),
+    ("Wild honey", 720, "Grocery", "Raw forest honey from Nepal's hills, 500 g. Unfiltered and unprocessed."),
+    ("Canvas backpack", 1899, "Bags", "Durable canvas backpack with a padded laptop sleeve and two side pockets."),
+    ("Jute tote bag", 450, "Bags", "Reusable jute tote with cotton handles, roomy enough for a full grocery run."),
+    ("Leather wallet", 1199, "Bags", "Slim bifold wallet in genuine leather with six card slots and a note pocket."),
+    ("Travel duffel", 2499, "Bags", "Water-resistant 40 L duffel with a shoulder strap, sized for a weekend trip."),
+    ("Notebook set", 95, "Stationery", "Pack of three ruled A5 notebooks, 80 pages each."),
+    ("Gel pen pack", 120, "Stationery", "Pack of five smooth-writing gel pens in assorted colours."),
+    ("Lokta paper journal", 380, "Stationery", "Handmade journal of Nepali lokta paper, bound with a cloth tie."),
+    ("Sketchbook A4", 290, "Stationery", "A4 spiral sketchbook with 50 sheets of heavy 160 gsm drawing paper."),
 ]
+
+
+def _image_for(name):
+    return "images/products/" + re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") + ".svg"
+
+
+def _add_missing_product_columns():
+    """Add columns introduced after the products table was first created.
+
+    db.create_all() only creates missing tables — it never alters existing
+    ones — so an already-deployed database needs these added by hand.
+    """
+    from sqlalchemy import inspect
+
+    existing = {c["name"] for c in inspect(db.engine).get_columns("products")}
+    for column, ddl in (
+        ("image_url", "VARCHAR(255)"),
+        ("description", "VARCHAR(500)"),
+    ):
+        if column not in existing:
+            db.session.execute(db.text(f"ALTER TABLE products ADD COLUMN {column} {ddl}"))
+    db.session.commit()
 
 
 def init_db():
     """Create missing tables and seed demo data. Safe to call repeatedly."""
     db.create_all()
+    _add_missing_product_columns()
 
     if not User.query.filter_by(email="aarati@test.com").first():
         demo = User(name="Aarati Adhikari", email="aarati@test.com", phone="9812345678")
         demo.set_password("test1234")
         db.session.add(demo)
 
-    for name, price, tag in SAMPLE_PRODUCTS:
-        if not Product.query.filter_by(name=name).first():
-            db.session.add(Product(name=name, price=price, tag=tag))
+    for name, price, tag, description in SAMPLE_PRODUCTS:
+        product = Product.query.filter_by(name=name).first()
+        if not product:
+            db.session.add(
+                Product(
+                    name=name,
+                    price=price,
+                    tag=tag,
+                    image_url=_image_for(name),
+                    description=description,
+                )
+            )
+        else:
+            # Backfill rows seeded before images/descriptions existed, without
+            # touching price or anything else that may have been edited since.
+            product.image_url = product.image_url or _image_for(name)
+            product.description = product.description or description
 
     db.session.commit()
 
@@ -212,6 +279,7 @@ def login():
 
 
 @app.post("/logout")
+@swag_from("docs/logout.yml")
 def logout():
     """Clear the auth cookie."""
     resp = jsonify({"ok": True})
@@ -230,11 +298,48 @@ def me():
 # ----- Product routes ------------------------------------------------------
 
 
+# Longest ?q= accepted by GET /products — well past any product name.
+MAX_SEARCH_LENGTH = 100
+
+
 @app.get("/products")
 @swag_from("docs/products.yml")
 def list_products():
-    """List all products in the shop."""
-    return jsonify([p.to_dict() for p in Product.query.order_by(Product.id).all()])
+    """List products, optionally filtered by ?category= and/or ?q= (name or tag)."""
+    query = Product.query
+    category = (request.args.get("category") or "").strip()
+    if category:
+        query = query.filter(db.func.lower(Product.tag) == category.lower())
+    term = (request.args.get("q") or "").strip()
+    if term:
+        if len(term) > MAX_SEARCH_LENGTH:
+            return (
+                jsonify(
+                    {"error": f"Search must be {MAX_SEARCH_LENGTH} characters or fewer"}
+                ),
+                400,
+            )
+        # Escape LIKE wildcards so "%" or "_" in the search box match literally
+        # instead of matching everything.
+        escaped = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        pattern = f"%{escaped}%"
+        query = query.filter(
+            db.or_(
+                Product.name.ilike(pattern, escape="\\"),
+                Product.tag.ilike(pattern, escape="\\"),
+            )
+        )
+    return jsonify([p.to_dict() for p in query.order_by(Product.id).all()])
+
+
+@app.get("/products/<int:product_id>")
+@swag_from("docs/product_get.yml")
+def get_product(product_id):
+    """Fetch one product (used by the product detail page)."""
+    product = db.session.get(Product, product_id)
+    if not product:
+        return jsonify({"error": "Product not found"}), 404
+    return jsonify(product.to_dict())
 
 
 # ----- Cart routes ---------------------------------------------------------
@@ -474,12 +579,26 @@ def my_orders():
 
 @app.get("/orders/<int:order_id>")
 @login_required
+@swag_from("docs/orders_get.yml")
 def get_order(order_id):
     """Fetch a single order (must belong to the current user)."""
     order = Order.query.filter_by(id=order_id, user_id=request.user.id).first()
     if not order:
         return jsonify({"error": "Order not found"}), 404
     return jsonify(order.to_dict())
+
+
+@app.delete("/orders/<int:order_id>")
+@login_required
+@swag_from("docs/orders_delete.yml")
+def delete_order(order_id):
+    """Delete one of my orders, with its items."""
+    order = Order.query.filter_by(id=order_id, user_id=request.user.id).first()
+    if not order:
+        return jsonify({"error": "Order not found"}), 404
+    db.session.delete(order)
+    db.session.commit()
+    return "", 204
 
 
 # ----- `flask seed` --------------------------------------------------------
@@ -492,12 +611,44 @@ def seed():
     print("Seed complete. Demo login: aarati@test.com / test1234")
 
 
+@app.cli.command("export-docs")
+def export_docs():
+    """Write the OpenAPI spec to api-docs/openapi.json for the static docs page.
+
+    Run this after editing any file in docs/, then commit the result. The page
+    at api-docs/index.html reads it, so the docs can be shared from the live
+    site without anyone running the backend.
+    """
+    import json
+
+    spec = app.test_client().get("/apispec_1.json").get_json()
+    spec["info"]["description"] = (
+        "REST API for SajiloBazar, a practice shop for QA testing. "
+        "Log in with POST /login (demo: aarati@test.com / test1234); the "
+        "browser then sends the auth cookie automatically, or click "
+        "Authorize and paste: Bearer YOUR_TOKEN."
+    )
+    # Show sections in the order a shopper uses them.
+    spec["tags"] = [
+        {"name": "Auth", "description": "Register, log in and out, who am I"},
+        {"name": "Products", "description": "Browse, search and filter the catalogue"},
+        {"name": "Cart", "description": "Add, change and remove cart items"},
+        {"name": "Orders", "description": "Place, list, view and delete orders"},
+    ]
+    out = os.path.join(os.path.dirname(__file__), "..", "api-docs", "openapi.json")
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    with open(out, "w") as f:
+        json.dump(spec, f, indent=2, sort_keys=True)
+        f.write("\n")
+    print(f"Wrote {os.path.normpath(out)} ({len(spec.get('paths', {}))} paths)")
+
+
 @app.cli.command("tables")
 def tables():
     """List every table with its row count and a few sample rows."""
     from sqlalchemy import inspect
 
-    print(f"DB: {app.config['SQLALCHEMY_DATABASE_URI']}\n")
+    print(f"DB: {_safe_db_url()}\n")
     inspector = inspect(db.engine)
     for name in inspector.get_table_names():
         cols = [c["name"] for c in inspector.get_columns(name)]

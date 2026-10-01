@@ -1,0 +1,10 @@
+tags: [Products]
+summary: Get one product by id.
+parameters:
+  - name: product_id
+    in: path
+    type: integer
+    required: true
+responses:
+  200: {description: "The product (id, name, price, tag, image_url, description)."}
+  404: {description: "No product with that id."}

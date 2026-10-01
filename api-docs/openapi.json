@@ -1,0 +1,499 @@
+{
+  "definitions": {},
+  "info": {
+    "description": "REST API for SajiloBazar, a practice shop for QA testing. Log in with POST /login (demo: aarati@test.com / test1234); the browser then sends the auth cookie automatically, or click Authorize and paste: Bearer YOUR_TOKEN.",
+    "title": "SajiloBazar API",
+    "version": "1.0"
+  },
+  "paths": {
+    "/cart": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "{ items: [...], total }"
+          },
+          "401": {
+            "description": "Missing or invalid token."
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Get my cart with line totals.",
+        "tags": [
+          "Cart"
+        ]
+      },
+      "post": {
+        "description": "Three accepted body shapes, up to 20 products per request:\n\n1. one product \u2014 {\"product_id\": 1, \"quantity\": 2}\n\n2. a list of lines \u2014 {\"items\": [{\"product_id\": 15, \"quantity\": 3}, ...]}\n\n3. parallel lists paired by position \u2014 {\"product_id\": [15, 13], \"quantity\": [3, 4]}. quantity may also be a single number applied to every product, or left out (defaults to 1); if it is a list it must be exactly as long as product_id.\n\nShapes 2 and 3 are all-or-nothing and answer with {\"items\": [...]}, one row per distinct product; shape 1 answers with the single cart item. Repeated products are summed, so a batch can never push one past the 10-unit limit.\n",
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "description": "product_id and quantity are integers in shape 1 and arrays of integers in shape 3 (Swagger 2.0 cannot express the either/or, see the examples in the endpoint description).\n",
+              "properties": {
+                "items": {
+                  "items": {
+                    "properties": {
+                      "product_id": {
+                        "example": 2,
+                        "type": "integer"
+                      },
+                      "quantity": {
+                        "example": 3,
+                        "maximum": 10,
+                        "minimum": 1,
+                        "type": "integer"
+                      }
+                    },
+                    "required": [
+                      "product_id"
+                    ],
+                    "type": "object"
+                  },
+                  "maxItems": 20,
+                  "type": "array"
+                },
+                "product_id": {
+                  "example": 1,
+                  "type": "integer"
+                },
+                "quantity": {
+                  "example": 1,
+                  "maximum": 10,
+                  "minimum": 1,
+                  "type": "integer"
+                }
+              },
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Added. Returns the cart item, or {items:[...]} for a batch."
+          },
+          "400": {
+            "description": "Quantity out of range (1-10), product_id not an integer, mismatched product_id/quantity lists, or over 20 items."
+          },
+          "404": {
+            "description": "Product not found."
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Add one product, or several at once, to my cart (max 10 units per product).",
+        "tags": [
+          "Cart"
+        ]
+      }
+    },
+    "/cart/{item_id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Removed."
+          },
+          "404": {
+            "description": "Item not found."
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Remove one item from my cart.",
+        "tags": [
+          "Cart"
+        ]
+      },
+      "patch": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "item_id",
+            "required": true,
+            "type": "integer"
+          },
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "properties": {
+                "quantity": {
+                  "example": 3,
+                  "maximum": 10,
+                  "minimum": 0,
+                  "type": "integer"
+                }
+              },
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Updated. Returns the cart item."
+          },
+          "204": {
+            "description": "Quantity was 0 \u2192 item removed."
+          },
+          "400": {
+            "description": "Quantity out of range (0-10)."
+          },
+          "404": {
+            "description": "Item not found."
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Set the exact quantity for one cart item (or remove if 0).",
+        "tags": [
+          "Cart"
+        ]
+      }
+    },
+    "/login": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "properties": {
+                "email": {
+                  "example": "aarati@test.com",
+                  "type": "string"
+                },
+                "password": {
+                  "example": "test1234",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK. Returns { token, user }."
+          },
+          "401": {
+            "description": "Email not found or incorrect password."
+          }
+        },
+        "summary": "Log in and get a JWT.",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/logout": {
+      "post": {
+        "responses": {
+          "200": {
+            "description": "Always { ok: true }, even if you were not logged in."
+          }
+        },
+        "summary": "Log out (clears the sajilo-token cookie).",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/me": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Current user profile."
+          },
+          "401": {
+            "description": "Missing or invalid token."
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Get the current logged-in user.",
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/orders": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "Orders list. Each order has id, address, payment_method, total, created_at and items (product_id, name, price, quantity, line_total, image_url). items is empty for orders placed before order lines were recorded.\n"
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "List my past orders (newest first).",
+        "tags": [
+          "Orders"
+        ]
+      },
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "properties": {
+                "address": {
+                  "example": "Baneshwor, Kathmandu",
+                  "type": "string"
+                },
+                "payment_method": {
+                  "enum": [
+                    "esewa",
+                    "khalti",
+                    "cod"
+                  ],
+                  "example": "cod",
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Order placed."
+          },
+          "400": {
+            "description": "Cart empty, below minimum, or invalid method."
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Place an order from the cart (min Rs 100).",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
+    "/orders/{order_id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          },
+          "404": {
+            "description": "No order with that id belongs to you."
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Delete one of my orders (and its items).",
+        "tags": [
+          "Orders"
+        ]
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The order (id, address, payment_method, total, created_at, items)."
+          },
+          "404": {
+            "description": "No order with that id belongs to you."
+          }
+        },
+        "security": [
+          {
+            "Bearer": []
+          }
+        ],
+        "summary": "Get one of my orders, with its items.",
+        "tags": [
+          "Orders"
+        ]
+      }
+    },
+    "/products": {
+      "get": {
+        "parameters": [
+          {
+            "description": "Only return products in this category (the product's `tag`), e.g. \"Grocery\". Case-insensitive exact match; blank returns every category.\n",
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "description": "Case-insensitive search. Returns products whose name or tag contains this text. Leading/trailing spaces are ignored; blank returns everything.\n",
+            "in": "query",
+            "maxLength": 100,
+            "name": "q",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Array of products (empty if nothing matches). Each has id, name, price, tag (category), image_url (path relative to the site root) and description.\n"
+          },
+          "400": {
+            "description": "Search term longer than 100 characters."
+          }
+        },
+        "summary": "List products, optionally filtered by category and/or a search term.",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/products/{product_id}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The product (id, name, price, tag, image_url, description)."
+          },
+          "404": {
+            "description": "No product with that id."
+          }
+        },
+        "summary": "Get one product by id.",
+        "tags": [
+          "Products"
+        ]
+      }
+    },
+    "/register": {
+      "post": {
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "properties": {
+                "email": {
+                  "example": "aarati@test.com",
+                  "type": "string"
+                },
+                "name": {
+                  "example": "Aarati Adhikari",
+                  "type": "string"
+                },
+                "password": {
+                  "example": "test1234",
+                  "type": "string"
+                },
+                "phone": {
+                  "example": "9812345678",
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "email",
+                "phone",
+                "password"
+              ],
+              "type": "object"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Created. Returns { token, user }."
+          },
+          "400": {
+            "description": "Missing/invalid fields or duplicate email."
+          }
+        },
+        "summary": "Create a new user account.",
+        "tags": [
+          "Auth"
+        ]
+      }
+    }
+  },
+  "securityDefinitions": {
+    "Bearer": {
+      "description": "Type: Bearer <your-token-from-login>",
+      "in": "header",
+      "name": "Authorization",
+      "type": "apiKey"
+    }
+  },
+  "swagger": "2.0",
+  "tags": [
+    {
+      "description": "Register, log in and out, who am I",
+      "name": "Auth"
+    },
+    {
+      "description": "Browse, search and filter the catalogue",
+      "name": "Products"
+    },
+    {
+      "description": "Add, change and remove cart items",
+      "name": "Cart"
+    },
+    {
+      "description": "Place, list, view and delete orders",
+      "name": "Orders"
+    }
+  ]
+}

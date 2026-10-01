@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Shop &middot; SajiloBazar</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="styles.css">
 <script src="api.js" defer></script>
 <script src="common.js" defer></script>
@@ -13,8 +14,43 @@
 <header class="site" id="site-header"></header>
 <main>
 <h1 style="font-size:34px;margin:0 0 6px">Today&rsquo;s picks</h1>
-<p style="font-size:16px;margin:0 0 30px" class="muted">Maximum 10 of any single item per order.</p>
-<div id="grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:26px"></div>
+<p style="font-size:16px;margin:0 0 20px" class="muted">Maximum 10 of any single item per order.</p>
+<div class="shop-toolbar">
+<div class="field" style="flex:1;max-width:420px">
+<label for="search">Search products</label>
+<input id="search" class="input" type="search" placeholder="Search by name or category" maxlength="100" autocomplete="off">
+</div>
+<div class="field">
+<span class="field-label" id="category-label">Category</span>
+<div id="categories" class="chips" role="group" aria-labelledby="category-label">
+<!-- placeholders until the real categories load, so the filters below don't jump -->
+<span class="chip chip-skeleton" style="width:44px" aria-hidden="true"></span><span class="chip chip-skeleton" style="width:86px" aria-hidden="true"></span><span class="chip chip-skeleton" style="width:104px" aria-hidden="true"></span><span class="chip chip-skeleton" style="width:70px" aria-hidden="true"></span><span class="chip chip-skeleton" style="width:82px" aria-hidden="true"></span><span class="chip chip-skeleton" style="width:60px" aria-hidden="true"></span><span class="chip chip-skeleton" style="width:104px" aria-hidden="true"></span>
+</div>
+</div>
+</div>
+<div class="shop-filters">
+<div class="field">
+<label for="sort">Sort by</label>
+<select id="sort" class="input">
+<option value="featured">Featured</option>
+<option value="price-asc">Price: low to high</option>
+<option value="price-desc">Price: high to low</option>
+<option value="name">Name: A to Z</option>
+</select>
+</div>
+<div class="field">
+<span class="field-label" id="price-label">Price (Rs)</span>
+<div class="price-range" role="group" aria-labelledby="price-label">
+<input id="price-min" class="input" type="text" inputmode="numeric" maxlength="7" autocomplete="off" placeholder="Min" aria-label="Minimum price">
+<span aria-hidden="true">&ndash;</span>
+<input id="price-max" class="input" type="text" inputmode="numeric" maxlength="7" autocomplete="off" placeholder="Max" aria-label="Maximum price">
+</div>
+</div>
+</div>
+<p id="result-count" class="muted" style="margin:0 0 14px;font-size:14px" aria-live="polite"></p>
+<div id="grid" class="product-grid"></div>
+<nav id="pager" class="pager" aria-label="Product pages"></nav>
+<dialog id="quick-view" class="quick-view" aria-labelledby="qv-name"></dialog>
 </main>
 </body>
 </html>

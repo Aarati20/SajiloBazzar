@@ -1,17 +1,22 @@
 // Fake wallet screen: MPIN 1234 is accepted, anything else is rejected.
 document.addEventListener('DOMContentLoaded', async function () {
+  renderSteps('steps', 2);
   if (!(await requireLogin())) return;
 
   var params = new URLSearchParams(location.search);
-  var method = params.get('method') || 'eSewa';
+  // Show the wallet's proper name even if the link spells it in lowercase.
+  var method = paymentLabel(params.get('method') || 'eSewa');
   var addr = params.get('address') || '';
   document.getElementById('pay-badge').textContent = method;
   document.getElementById('pay-title').textContent = 'Pay with ' + method;
   document.getElementById('pay-id-label').textContent = method + ' mobile number';
 
   var cart = await api('/cart');
-  document.getElementById('pay-total').textContent = 'Rs ' + cart.total;
-  document.getElementById('pay-submit').textContent = 'Pay Rs ' + cart.total;
+  // Nothing to pay for: send the user back to the cart's empty state.
+  if (!cart.items.length) { location.replace('cart.html'); return; }
+  document.getElementById('pay-total').textContent = formatRs(cart.total);
+  document.getElementById('pay-submit').textContent = 'Pay ' + formatRs(cart.total);
+  submitOnEnter('pay-submit', ['pay-id', 'pay-pin']);
 
   var err = document.getElementById('pay-error');
   document.getElementById('pay-submit').addEventListener('click', async function () {

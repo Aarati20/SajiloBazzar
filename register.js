@@ -3,6 +3,19 @@ document.addEventListener('DOMContentLoaded', function () {
   var err = document.getElementById('rg-error');
   function fail(m) { err.textContent = m; err.hidden = false; }
 
+  // Same rules as the submit checks below, applied while the user types.
+  liveValidate('rg-name', function (v) { return v.trim() !== ''; });
+  liveValidate('rg-email', function (v) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.trim()); });
+  liveValidate('rg-phone', function (v) { return /^\d{10}$/.test(v.trim()); });
+  liveValidate('rg-pass', function (v) { return v.length >= 8; });
+  var checkConf = liveValidate('rg-conf', function (v) {
+    return v === document.getElementById('rg-pass').value;
+  });
+  // Editing the password can make an already-typed confirmation match or not.
+  document.getElementById('rg-pass').addEventListener('input', checkConf);
+
+  submitOnEnter('rg-submit', ['rg-name', 'rg-email', 'rg-phone', 'rg-pass', 'rg-conf']);
+
   document.getElementById('rg-submit').addEventListener('click', async function () {
     err.hidden = true;
     var name = document.getElementById('rg-name').value.trim();
