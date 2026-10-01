@@ -1,0 +1,12 @@
+tags: [Orders]
+summary: Get one of my orders, with its items.
+security:
+  - Bearer: []
+parameters:
+  - name: order_id
+    in: path
+    type: integer
+    required: true
+responses:
+  200: {description: "The order (id, address, payment_method, total, created_at, items)."}
+  404: {description: "No order with that id belongs to you."}

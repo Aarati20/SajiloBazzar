@@ -270,6 +270,7 @@ def login():
 
 
 @app.post("/logout")
+@swag_from("docs/logout.yml")
 def logout():
     """Clear the auth cookie."""
     resp = jsonify({"ok": True})
@@ -569,6 +570,7 @@ def my_orders():
 
 @app.get("/orders/<int:order_id>")
 @login_required
+@swag_from("docs/orders_get.yml")
 def get_order(order_id):
     """Fetch a single order (must belong to the current user)."""
     order = Order.query.filter_by(id=order_id, user_id=request.user.id).first()
@@ -598,6 +600,38 @@ def seed():
     """Manually re-run the auto-seed (usually not needed — startup does it)."""
     init_db()
     print("Seed complete. Demo login: aarati@test.com / test1234")
+
+
+@app.cli.command("export-docs")
+def export_docs():
+    """Write the OpenAPI spec to api-docs/openapi.json for the static docs page.
+
+    Run this after editing any file in docs/, then commit the result. The page
+    at api-docs/index.html reads it, so the docs can be shared from the live
+    site without anyone running the backend.
+    """
+    import json
+
+    spec = app.test_client().get("/apispec_1.json").get_json()
+    spec["info"]["description"] = (
+        "REST API for SajiloBazar, a practice shop for QA testing. "
+        "Log in with POST /login (demo: aarati@test.com / test1234); the "
+        "browser then sends the auth cookie automatically, or click "
+        "Authorize and paste: Bearer YOUR_TOKEN."
+    )
+    # Show sections in the order a shopper uses them.
+    spec["tags"] = [
+        {"name": "Auth", "description": "Register, log in and out, who am I"},
+        {"name": "Products", "description": "Browse, search and filter the catalogue"},
+        {"name": "Cart", "description": "Add, change and remove cart items"},
+        {"name": "Orders", "description": "Place, list, view and delete orders"},
+    ]
+    out = os.path.join(os.path.dirname(__file__), "..", "api-docs", "openapi.json")
+    os.makedirs(os.path.dirname(out), exist_ok=True)
+    with open(out, "w") as f:
+        json.dump(spec, f, indent=2, sort_keys=True)
+        f.write("\n")
+    print(f"Wrote {os.path.normpath(out)} ({len(spec.get('paths', {}))} paths)")
 
 
 @app.cli.command("tables")

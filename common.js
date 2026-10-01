@@ -26,7 +26,18 @@ var REQS = [
   ['FR-22', 'Cancelling on the payment screen returns the user to checkout with the cart untouched.'],
   ['FR-23', 'The shop search box filters products by name or category, ignoring upper/lower case.'],
   ['FR-24', 'The shop shows 8 products per page, can be filtered by category, and each product has an image and a quick view with its description.'],
-  ['NFR-1', 'Every error message tells the user exactly what to fix.']
+  ['FR-25', 'Products can be sorted by price (low to high, high to low) or by name, and narrowed to a minimum and/or maximum price.'],
+  ['FR-26', 'Each product has its own page with its image, category, price, description and a quantity picker (1 to 10) for adding it to the cart.'],
+  ['FR-27', 'On the register and login pages, a field turns red while what has been typed in it is invalid.'],
+  ['FR-28', 'Pressing Enter submits the login, register, checkout and payment forms.'],
+  ['FR-29', 'Checkout shows an order summary listing every cart item with its quantity and line total.'],
+  ['FR-30', 'Checkout fills in the delivery address from the user\'s most recent order, and the user can change it.'],
+  ['FR-31', 'Checkout and the payment screen cannot be used with an empty cart; the user is sent to the cart instead.'],
+  ['FR-32', 'My orders lists every order with its date, items, payment method, status (Paid for eSewa/Khalti, Pending for cash on delivery) and total.'],
+  ['FR-33', 'A user can delete one of their orders from My orders after confirming. It no longer appears, even after reloading.'],
+  ['FR-34', 'Prices are shown in rupees with digit grouping, e.g. Rs 1,450.'],
+  ['NFR-1', 'Every error message tells the user exactly what to fix.'],
+  ['NFR-2', 'Every page works on a phone screen (390 px wide) without scrolling sideways.']
 ];
 
 // Cache the current user + cart count so the header can render synchronously.
@@ -258,7 +269,8 @@ function openReqs() {
     '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:22px">' +
     '<h2 style="font-size:26px;margin:0">Requirements (your SRS)</h2>' +
     '<button class="btn btn-ghost drawer-close" style="font-size:14px">Close</button></div>' +
-    '<p style="font-size:15px;line-height:1.6;margin:0 0 24px" class="muted">Test the app against these rules. Anything that behaves differently is a bug: write it up with steps, expected and actual.</p>' +
+    '<p style="font-size:15px;line-height:1.6;margin:0 0 12px" class="muted">Test the app against these rules. Anything that behaves differently is a bug: write it up with steps, expected and actual.</p>' +
+    '<p style="font-size:15px;margin:0 0 24px"><a href="/api-docs/" target="_blank" rel="noopener">Open the API docs (Swagger) &rarr;</a></p>' +
     rows + '</div>';
   back.addEventListener('click', function (e) {
     if (e.target === back || e.target.classList.contains('drawer-close')) back.remove();

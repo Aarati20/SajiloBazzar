@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>API docs &middot; SajiloBazar</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.29.1/swagger-ui.min.css">
+<style>
+  body { margin: 0; background: #fffaf0; font-family: 'Figtree', system-ui, sans-serif; color: #201e1d; }
+  .docs-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 20px; padding: 14px 24px; background: #f5ead8; border-bottom: 1px solid #e4dccc; }
+  .docs-bar .brand { font-family: 'Caprasimo', serif; font-size: 24px; color: #8f4e22; text-decoration: none; }
+  .docs-bar p { margin: 0; font-size: 14px; color: rgb(32 30 29 / 70%); }
+  .docs-bar code { background: #fffaf0; padding: 2px 6px; border-radius: 6px; }
+  .docs-error { max-width: 640px; margin: 40px auto; padding: 0 24px; line-height: 1.6; }
+  .swagger-ui .topbar { display: none; }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Caprasimo&family=Figtree:wght@400;600;700&display=swap">
+<!-- api.js works out where the API lives (local Flask or /api on Vercel). -->
+<script src="/api.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.29.1/swagger-ui-bundle.min.js"></script>
+</head>
+<body>
+<div class="docs-bar">
+  <a class="brand" href="/login.html">SajiloBazar</a>
+  <p>API docs. Try requests live: run <code>POST /login</code> with the demo account
+  (<code>aarati@test.com</code> / <code>test1234</code>) and the rest just work.</p>
+</div>
+<div id="swagger-ui"></div>
+<script>
+  // Point the spec at whichever API api.js chose, e.g.
+  //   http://127.0.0.1:5000        (local)  -> host 127.0.0.1:5000, basePath /
+  //   https://<site>/api           (Vercel) -> host <site>,          basePath /api
+  fetch('/api-docs/openapi.json')
+    .then(function (res) {
+      if (!res.ok) throw new Error('openapi.json returned HTTP ' + res.status);
+      return res.json();
+    })
+    .then(function (spec) {
+      var api = new URL(window.API_BASE);
+      spec.host = api.host;
+      spec.basePath = api.pathname.replace(/\/$/, '') || '/';
+      spec.schemes = [api.protocol.replace(':', '')];
+
+      SwaggerUIBundle({
+        spec: spec,
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        // Send the login cookie with "Try it out" requests, including from the
+        // local static server to the local API on another port.
+        requestInterceptor: function (req) { req.credentials = 'include'; return req; }
+      });
+    })
+    .catch(function (err) {
+      document.getElementById('swagger-ui').innerHTML =
+        '<div class="docs-error"><h2>Could not load the API spec</h2>' +
+        '<p>' + String(err.message).replace(/[<>&]/g, '') + '</p>' +
+        '<p>Open this page through the website (or the local server from the README), ' +
+        'not by double-clicking the file.</p></div>';
+    });
+</script>
+</body>
+</html>

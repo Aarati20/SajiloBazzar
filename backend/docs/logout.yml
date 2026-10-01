@@ -1,0 +1,4 @@
+tags: [Auth]
+summary: Log out (clears the sajilo-token cookie).
+responses:
+  200: {description: "Always { ok: true }, even if you were not logged in."}

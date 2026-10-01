@@ -136,8 +136,8 @@ Stopping and starting again
 2. YOUR QA TASK
 ================================================================================
 
-Click "Requirements" in the header of the app to see the 25 rules
-(FR-1 to FR-24, NFR-1). Test the app against them.
+Click "Requirements" in the header of the app to see the 36 rules
+(FR-1 to FR-34, NFR-1 and NFR-2). Test the app against them.
 
 For every bug you find, write down:
   - Title         one line that describes the problem
@@ -275,6 +275,24 @@ Business rules the API enforces:
   - FR-10  maximum 10 units of a single product per order
   - FR-13  minimum order value is Rs 100
   - FR-15  payment method must be esewa, khalti or cod
+
+--------------------------------------------------------------------------------
+Shareable API docs (no setup needed)
+--------------------------------------------------------------------------------
+
+  https://sajilo-bazzar.vercel.app/api-docs/
+
+Anyone can open this link: it is a static Swagger page served with the
+site, and "Try it out" calls the live API. Run POST /login with the demo
+account first; the browser then sends the login cookie with every request.
+The same page works locally at http://127.0.0.1:8000/api-docs/ against your
+local backend. It is also linked from the Requirements panel.
+
+The page reads api-docs/openapi.json, a copy of the spec. After editing any
+YAML file in backend/docs/, refresh that copy and commit it:
+
+    cd backend
+    flask export-docs
 
 --------------------------------------------------------------------------------
 Swagger UI: http://127.0.0.1:5000/docs
@@ -416,6 +434,8 @@ carts or orders.
     images/products/       product pictures (SVG). Each product's image_url
                            points here.
     favicon.svg            browser-tab icon
+    api-docs/              shareable Swagger page (index.html) and the
+                           exported spec it shows (openapi.json)
 
   Backend (backend/)
     app.py                 setup, all routes, init_db() auto-setup,
@@ -425,6 +445,8 @@ carts or orders.
     models/                user.py, product.py, cart_item.py, order.py,
                            order_item.py (the products inside an order)
     docs/                  one Swagger YAML file per endpoint
+                           (`flask export-docs` copies them into
+                           api-docs/openapi.json)
     requirements.txt       Python packages for local development
 
   Deployment
@@ -479,8 +501,7 @@ Check a deployment
 
   https://sajilo-bazzar.vercel.app/                → login page
   https://sajilo-bazzar.vercel.app/api/products    → JSON list of 24 products
-  https://sajilo-bazzar.vercel.app/api/docs        → Swagger (styling may look
-                                                     broken, endpoints work)
+  https://sajilo-bazzar.vercel.app/api-docs/       → shareable API docs
 
 --------------------------------------------------------------------------------
 Production troubleshooting
