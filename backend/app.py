@@ -64,7 +64,16 @@ if db_url.startswith("postgresql"):
         "pool_recycle": 300,
     }
 
-print(f" * Database: {app.config['SQLALCHEMY_DATABASE_URI']}")
+def _safe_db_url():
+    """The database URL with any password replaced by ***, safe to print."""
+    from sqlalchemy.engine import make_url
+
+    return make_url(app.config["SQLALCHEMY_DATABASE_URI"]).render_as_string(
+        hide_password=True
+    )
+
+
+print(f" * Database: {_safe_db_url()}")
 
 db.init_app(app)
 
@@ -639,7 +648,7 @@ def tables():
     """List every table with its row count and a few sample rows."""
     from sqlalchemy import inspect
 
-    print(f"DB: {app.config['SQLALCHEMY_DATABASE_URI']}\n")
+    print(f"DB: {_safe_db_url()}\n")
     inspector = inspect(db.engine)
     for name in inspector.get_table_names():
         cols = [c["name"] for c in inspector.get_columns(name)]
