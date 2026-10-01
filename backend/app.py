@@ -168,8 +168,32 @@ def _add_missing_product_columns():
     db.session.commit()
 
 
+# Any fixed number works; it just names the lock below.
+INIT_DB_LOCK_ID = 581_640_217
+
+
 def init_db():
-    """Create missing tables and seed demo data. Safe to call repeatedly."""
+    """Create missing tables and seed demo data. Safe to call repeatedly.
+
+    On Vercel several fresh instances can start at the same moment (a page
+    load fires /me, /cart and /products together), and each runs this. On
+    Postgres a database-wide advisory lock makes them take turns, so only one
+    creates tables and adds columns while the others wait and then find
+    nothing left to do. SQLite is local and single-process, so it skips this.
+    """
+    if db.engine.dialect.name != "postgresql":
+        _init_db_unlocked()
+        return
+
+    with db.engine.connect() as lock_conn:
+        lock_conn.execute(db.text("SELECT pg_advisory_lock(:id)"), {"id": INIT_DB_LOCK_ID})
+        try:
+            _init_db_unlocked()
+        finally:
+            lock_conn.execute(db.text("SELECT pg_advisory_unlock(:id)"), {"id": INIT_DB_LOCK_ID})
+
+
+def _init_db_unlocked():
     db.create_all()
     _add_missing_product_columns()
 
