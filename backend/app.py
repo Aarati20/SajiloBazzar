@@ -230,11 +230,35 @@ def me():
 # ----- Product routes ------------------------------------------------------
 
 
+# Longest ?q= accepted by GET /products — well past any product name.
+MAX_SEARCH_LENGTH = 100
+
+
 @app.get("/products")
 @swag_from("docs/products.yml")
 def list_products():
-    """List all products in the shop."""
-    return jsonify([p.to_dict() for p in Product.query.order_by(Product.id).all()])
+    """List products, optionally filtered by ?q= against name or tag."""
+    query = Product.query
+    term = (request.args.get("q") or "").strip()
+    if term:
+        if len(term) > MAX_SEARCH_LENGTH:
+            return (
+                jsonify(
+                    {"error": f"Search must be {MAX_SEARCH_LENGTH} characters or fewer"}
+                ),
+                400,
+            )
+        # Escape LIKE wildcards so "%" or "_" in the search box match literally
+        # instead of matching everything.
+        escaped = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        pattern = f"%{escaped}%"
+        query = query.filter(
+            db.or_(
+                Product.name.ilike(pattern, escape="\\"),
+                Product.tag.ilike(pattern, escape="\\"),
+            )
+        )
+    return jsonify([p.to_dict() for p in query.order_by(Product.id).all()])
 
 
 # ----- Cart routes ---------------------------------------------------------

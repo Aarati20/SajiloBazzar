@@ -72,19 +72,16 @@ async function settlePending() {
   if (flushTimer) await flush();
 }
 
-document.addEventListener('DOMContentLoaded', async function () {
-  if (!(await requireLogin())) return;
-  var grid = document.getElementById('grid');
-  grid.innerHTML = '<p class="muted">Loading products…</p>';
+var SEARCH_DELAY = 300;     // ms of quiet typing before the search is sent
+var searchTimer = null;
+var searchSeq = 0;          // bumps per request so a slow, older reply can't win
 
-  var products;
-  try {
-    products = await api('/products');
-  } catch (e) {
-    grid.innerHTML = '<p class="error">Could not load products: ' + e.message + '</p>';
+function renderProducts(grid, products, term) {
+  if (!products.length) {
+    grid.innerHTML = '<p class="muted" style="grid-column:1/-1">No products match &ldquo;' +
+      escapeHtml(term) + '&rdquo;.</p>';
     return;
   }
-
   grid.innerHTML = products.map(function (p) {
     return '<div style="background:var(--surface);border-radius:var(--radius);overflow:hidden;box-shadow:var(--shadow-sm);display:flex;flex-direction:column">' +
       '<div style="height:140px;background:var(--sage-100);display:flex;align-items:center;justify-content:center;font-family:var(--font-heading);font-size:22px;color:var(--sage-800)">' + p.name + '</div>' +
@@ -96,6 +93,42 @@ document.addEventListener('DOMContentLoaded', async function () {
       '<button class="btn btn-primary" style="font-size:15px" data-add="' + p.id + '" data-name="' + p.name + '">Add to cart</button>' +
       '</div></div>';
   }).join('');
+}
+
+// The search term is user input echoed back into the page, so it must not be
+// able to inject markup.
+function escapeHtml(text) {
+  return text.replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+async function loadProducts(grid, term) {
+  var seq = ++searchSeq;
+  var path = term ? '/products?q=' + encodeURIComponent(term) : '/products';
+  try {
+    var products = await api(path);
+    if (seq !== searchSeq) return;
+    renderProducts(grid, products, term);
+  } catch (e) {
+    if (seq !== searchSeq) return;
+    grid.innerHTML = '<p class="error" style="grid-column:1/-1">Could not load products: ' + escapeHtml(e.message) + '</p>';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async function () {
+  if (!(await requireLogin())) return;
+  var grid = document.getElementById('grid');
+  var search = document.getElementById('search');
+  grid.innerHTML = '<p class="muted">Loading products…</p>';
+  await loadProducts(grid, '');
+
+  search.addEventListener('input', function () {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(function () {
+      loadProducts(grid, search.value.trim());
+    }, SEARCH_DELAY);
+  });
 
   grid.addEventListener('click', function (e) {
     var id = e.target.getAttribute('data-add');

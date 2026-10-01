@@ -51,7 +51,7 @@ Files:
                   is HttpOnly and can't be read from JS)
   styles.css      the only stylesheet
 
-Click the Requirements button in the header to see the 23 rules (FR-1 to FR-22, NFR-1).
+Click the Requirements button in the header to see the 24 rules (FR-1 to FR-23, NFR-1).
 Test the app against them. The app contains planted bugs: find them, reproduce them,
 and report them with steps, expected result and actual result.
 

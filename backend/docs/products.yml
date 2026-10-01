@@ -1,4 +1,14 @@
 tags: [Products]
-summary: List all products.
+summary: List products, optionally filtered by a search term.
+parameters:
+  - name: q
+    in: query
+    type: string
+    required: false
+    maxLength: 100
+    description: >
+      Case-insensitive search. Returns products whose name or tag contains
+      this text. Leading/trailing spaces are ignored; blank returns everything.
 responses:
-  200: {description: "Array of products."}
+  200: {description: "Array of products (empty if nothing matches)."}
+  400: {description: "Search term longer than 100 characters."}

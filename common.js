@@ -24,6 +24,7 @@ var REQS = [
   ['FR-20', 'Choosing eSewa or Khalti opens a payment screen. Cash on delivery does not.'],
   ['FR-21', 'The payment screen needs a registered wallet number and the correct 4-digit MPIN.'],
   ['FR-22', 'Cancelling on the payment screen returns the user to checkout with the cart untouched.'],
+  ['FR-23', 'The shop search box filters products by name or category, ignoring upper/lower case.'],
   ['NFR-1', 'Every error message tells the user exactly what to fix.']
 ];
 
