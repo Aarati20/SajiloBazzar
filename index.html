@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <title>SajiloBazar</title>
 <script>
   // Redirect to login BEFORE any body content paints, so users never see a
@@ -24,8 +25,8 @@
     <p><strong>You opened this file directly (<code>file://</code>).</strong></p>
     <p>The app now talks to a Flask API, and browsers block network calls from
     <code>file://</code> pages. Serve the folder over HTTP first:</p>
-    <pre>cd /Users/bhesh/Downloads/SajiloBazzar
-python3 -m http.server 8000</pre>
+    <pre>cd path/to/SajiloBazzar
+python3 -m http.server 8000 --bind 127.0.0.1</pre>
     <p>Then open:</p>
     <p><a class="btn" href="http://127.0.0.1:8000/login.html">http://127.0.0.1:8000/login.html</a></p>
     <p style="margin-top:18px;font-size:14px" class="muted">Or use the live site: <a href="https://sajilo-bazzar.vercel.app/login.html">sajilo-bazzar.vercel.app</a></p>

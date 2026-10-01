@@ -14,6 +14,8 @@ document.addEventListener('DOMContentLoaded', function () {
   // Editing the password can make an already-typed confirmation match or not.
   document.getElementById('rg-pass').addEventListener('input', checkConf);
 
+  submitOnEnter('rg-submit', ['rg-name', 'rg-email', 'rg-phone', 'rg-pass', 'rg-conf']);
+
   document.getElementById('rg-submit').addEventListener('click', async function () {
     err.hidden = true;
     var name = document.getElementById('rg-name').value.trim();

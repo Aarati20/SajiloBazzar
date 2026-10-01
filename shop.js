@@ -7,27 +7,31 @@ var PENDING = {};           // product_id -> { quantity, name }
 var flushTimer = null;
 var flushing = null;        // the in-flight flush, so navigation can wait on it
 
-function stageAdd(productId, name) {
+function stageAdd(productId, name, qty) {
+  qty = qty || 1;
   var line = PENDING[productId];
-  if (line && line.quantity >= MAX_PER_PRODUCT) {
+  var staged = line ? line.quantity : 0;
+  if (staged + qty > MAX_PER_PRODUCT) {
     // One over-limit line makes the API reject the whole batch, so stop
     // counting here instead of taking the other products down with it. The
     // cart may already hold units of this product, so the server still has
     // the final say.
     toast('Maximum ' + MAX_PER_PRODUCT + ' units of a single product');
-    return;
+    return false;
   }
 
-  if (line) line.quantity += 1;
-  else PENDING[productId] = { quantity: 1, name: name };
+  if (line) line.quantity += qty;
+  else PENDING[productId] = { quantity: qty, name: name };
 
   // Move the header count now so a click still feels instant. POST /cart is
   // all-or-nothing, so a failed flush can take back exactly what it staged.
-  CART_COUNT += 1;
+  CART_COUNT += qty;
   renderHeader();
+  bumpCart();
 
   clearTimeout(flushTimer);
   flushTimer = setTimeout(flush, FLUSH_DELAY);
+  return true;
 }
 
 async function flush() {
@@ -80,17 +84,26 @@ var searchSeq = 0;          // bumps per request so a slow, older reply can't wi
 var VIEW = {
   term: '',
   category: '',             // '' = all categories
-  products: [],             // every product matching term + category
+  products: [],             // every product matching term + category (server)
+  sort: 'featured',         // featured | price-asc | price-desc | name
+  minPrice: null,           // price range, applied on top of the server result
+  maxPrice: null,
   page: 1
 };
 var PRODUCTS_BY_ID = {};    // for quick view, filled from every response
 
-// Product text comes from the database and the search term from the user, so
-// everything is escaped before it is put into the page.
-function escapeHtml(text) {
-  return String(text == null ? '' : text).replace(/[&<>"']/g, function (c) {
-    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+// The server result narrowed by price and put in the chosen order.
+function visibleProducts() {
+  var list = VIEW.products.filter(function (p) {
+    return (VIEW.minPrice == null || p.price >= VIEW.minPrice) &&
+           (VIEW.maxPrice == null || p.price <= VIEW.maxPrice);
   });
+  var by = {
+    'price-asc': function (a, b) { return a.price - b.price; },
+    'price-desc': function (a, b) { return b.price - a.price; },
+    'name': function (a, b) { return a.name.localeCompare(b.name); }
+  }[VIEW.sort];
+  return by ? list.slice().sort(by) : list;
 }
 
 function productImage(p, cls) {
@@ -108,8 +121,8 @@ function renderCard(p) {
     '</button>' +
     '<div class="product-body">' +
       '<span class="tag" style="align-self:flex-start">' + escapeHtml(p.tag) + '</span>' +
-      '<p class="product-name">' + escapeHtml(p.name) + '</p>' +
-      '<p class="product-price">Rs ' + p.price + '</p>' +
+      '<a class="product-name" href="product.html?id=' + p.id + '">' + escapeHtml(p.name) + '</a>' +
+      '<p class="product-price">' + formatRs(p.price) + '</p>' +
       '<div style="flex:1"></div>' +
       '<div class="product-actions">' +
         '<button class="btn btn-secondary" data-quick="' + p.id + '">Quick view</button>' +
@@ -118,26 +131,44 @@ function renderCard(p) {
     '</div></article>';
 }
 
+function renderSkeletons() {
+  var card = '<div class="product-card skeleton-card" aria-hidden="true">' +
+    '<div class="skeleton skeleton-image"></div>' +
+    '<div class="product-body"><div class="skeleton skeleton-line" style="width:35%"></div>' +
+    '<div class="skeleton skeleton-line" style="width:75%"></div>' +
+    '<div class="skeleton skeleton-line" style="width:45%"></div>' +
+    '<div class="skeleton skeleton-button"></div></div></div>';
+  document.getElementById('grid').innerHTML = new Array(PAGE_SIZE + 1).join(card);
+  document.getElementById('result-count').textContent = 'Loading products…';
+}
+
 function pageCount() {
-  return Math.max(1, Math.ceil(VIEW.products.length / PAGE_SIZE));
+  return Math.max(1, Math.ceil(visibleProducts().length / PAGE_SIZE));
 }
 
 function render() {
   var grid = document.getElementById('grid');
   var count = document.getElementById('result-count');
-  var total = VIEW.products.length;
+  var products = visibleProducts();
+  var total = products.length;
 
   if (!total) {
-    var what = VIEW.term ? 'match &ldquo;' + escapeHtml(VIEW.term) + '&rdquo;' : 'here yet';
+    var what = '';
+    if (VIEW.term) what += ' match &ldquo;' + escapeHtml(VIEW.term) + '&rdquo;';
     if (VIEW.category) what += ' in ' + escapeHtml(VIEW.category);
-    grid.innerHTML = '<p class="muted" style="grid-column:1/-1">No products ' + what + '.</p>';
+    if (VIEW.minPrice != null || VIEW.maxPrice != null) what += (what ? ' at that price' : ' in that price range');
+    if (!what) what = ' here yet';
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">' +
+      '<img src="images/products/jute-tote-bag.svg" alt="">' +
+      '<p class="empty-title">No products' + what + '.</p>' +
+      '<p class="muted">Try another search, category or price range.</p></div>';
     count.textContent = '';
     renderPager();
     return;
   }
 
   var first = (VIEW.page - 1) * PAGE_SIZE;
-  var shown = VIEW.products.slice(first, first + PAGE_SIZE);
+  var shown = products.slice(first, first + PAGE_SIZE);
   grid.innerHTML = shown.map(renderCard).join('');
   count.textContent = 'Showing ' + (first + 1) + '–' + (first + shown.length) + ' of ' + total +
     (total === 1 ? ' product' : ' products');
@@ -205,13 +236,16 @@ function openQuickView(id) {
       '<div class="quick-view-info">' +
         '<span class="tag" style="align-self:flex-start">' + escapeHtml(p.tag) + '</span>' +
         '<h2 id="qv-name" style="margin:0;font-size:28px">' + escapeHtml(p.name) + '</h2>' +
-        '<p class="product-price" style="font-size:24px">Rs ' + p.price + '</p>' +
+        '<p class="product-price" style="font-size:24px">' + formatRs(p.price) + '</p>' +
         '<p style="margin:0;line-height:1.5">' + escapeHtml(p.description || 'No description yet.') + '</p>' +
-        '<p class="muted" style="margin:0;font-size:14px">Maximum ' + MAX_PER_PRODUCT + ' per order.</p>' +
+        '<div class="qty-row">' + qtyStepper('qv-qty') +
+          '<span class="muted" style="font-size:14px">Maximum ' + MAX_PER_PRODUCT + ' per order.</span></div>' +
         '<div style="flex:1"></div>' +
         '<button class="btn btn-primary" data-add="' + p.id + '" data-name="' + escapeHtml(p.name) + '">Add to cart</button>' +
+        '<a class="quick-view-more" href="product.html?id=' + p.id + '">View full details &rarr;</a>' +
       '</div>' +
     '</div>';
+  wireQtyStepper(dialog, 'qv-qty', MAX_PER_PRODUCT);
   dialog.showModal();
 }
 
@@ -220,7 +254,7 @@ document.addEventListener('DOMContentLoaded', async function () {
   var grid = document.getElementById('grid');
   var search = document.getElementById('search');
   var dialog = document.getElementById('quick-view');
-  grid.innerHTML = '<p class="muted">Loading products…</p>';
+  renderSkeletons();
 
   // The first, unfiltered load is the full catalogue, so it doubles as the
   // source of the category list.
@@ -251,6 +285,26 @@ document.addEventListener('DOMContentLoaded', async function () {
     loadProducts();
   });
 
+  document.getElementById('sort').addEventListener('change', function (e) {
+    VIEW.sort = e.target.value;
+    VIEW.page = 1;
+    render();
+  });
+
+  // Blank means "no limit" on that side of the range.
+  function readPrice(id) {
+    var v = document.getElementById(id).value.trim();
+    return v === '' || isNaN(Number(v)) ? null : Number(v);
+  }
+  ['price-min', 'price-max'].forEach(function (id) {
+    document.getElementById(id).addEventListener('input', function () {
+      VIEW.minPrice = readPrice('price-min');
+      VIEW.maxPrice = readPrice('price-max');
+      VIEW.page = 1;
+      render();
+    });
+  });
+
   document.getElementById('pager').addEventListener('click', function (e) {
     var btn = e.target.closest('[data-page]');
     if (!btn || btn.disabled) return;
@@ -271,8 +325,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     if (e.target === dialog || e.target.closest('[data-close]')) { dialog.close(); return; }
     var add = e.target.closest('[data-add]');
     if (!add) return;
-    stageAdd(parseInt(add.getAttribute('data-add'), 10), add.getAttribute('data-name'));
-    dialog.close();
+    var qty = parseInt(document.getElementById('qv-qty').value, 10) || 1;
+    if (stageAdd(parseInt(add.getAttribute('data-add'), 10), add.getAttribute('data-name'), qty)) dialog.close();
   });
 
   // A staged batch is not sent yet, so following a link would drop it. Hold an

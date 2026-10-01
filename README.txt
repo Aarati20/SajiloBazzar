@@ -148,9 +148,9 @@ For every bug you find, write down:
 
 The user journey goes like this:
 
-  register → login → shop (search, filter by category, 8 products per page,
-  quick view) → cart → checkout → pay (eSewa / Khalti only) → order done
-  → My orders
+  register → login → shop (search, category, sort, price range, 8 products
+  per page, quick view, product pages) → cart → checkout → pay (eSewa /
+  Khalti only) → order done → My orders
 
 Useful things to know while testing:
   - Your login is an HttpOnly cookie called "sajilo-token". You can see it in
@@ -242,6 +242,7 @@ Endpoints
                                                           characters)
                                          ?category=Home   one category
                                        Both can be combined.
+  GET    /products/<id>      (public)  one product (404 if it doesn't exist)
 
   GET    /cart               (auth)    { items:[...], total }
   POST   /cart               (auth)    add one product, or several at once
@@ -250,8 +251,11 @@ Endpoints
   DELETE /cart/<item_id>     (auth)    remove one item
 
   POST   /orders             (auth)    place an order from the cart
-  GET    /orders             (auth)    list my orders
+  GET    /orders             (auth)    list my orders, newest first
   GET    /orders/<id>        (auth)    one order (used by done.html)
+
+Every order includes its items (name, price, quantity, line_total,
+image_url). Orders placed before items were recorded have an empty list.
 
 (auth) endpoints accept the sajilo-token cookie, or an
 "Authorization: Bearer <token>" header (handy for Postman and curl).
@@ -344,7 +348,7 @@ You don't need a .env file for local practice. The defaults just work.
 ================================================================================
 
 Locally the database is the file backend/sajilobazar.db (ignored by git).
-It has 4 tables: users, products, cart_items, orders.
+It has 5 tables: users, products, cart_items, orders, order_items.
 
 Quick look at every table (from the backend folder, venv active):
 
@@ -392,7 +396,9 @@ carts or orders.
     index.html             redirects to the login page
     login.html    + .js    log in
     register.html + .js    create an account
-    shop.html     + .js    search, category filter, 8 per page, quick view
+    shop.html     + .js    search, category, sort, price range, 8 per page,
+                           quick view
+    product.html  + .js    one product's page (product.html?id=3)
     cart.html     + .js
     checkout.html + .js
     pay.html      + .js    eSewa / Khalti wallet screen
@@ -400,17 +406,21 @@ carts or orders.
     orders.html   + .js    My orders
     api.js                 calls the API and picks its address automatically
                            (127.0.0.1:5000 locally, /api on Vercel)
-    common.js              header, toasts, Requirements drawer, login check
+    common.js              header (with phone menu), footer, checkout steps,
+                           toasts, Requirements drawer, login check, and
+                           helpers such as formatRs() and submitOnEnter()
     styles.css             the only stylesheet
     images/products/       product pictures (SVG). Each product's image_url
                            points here.
+    favicon.svg            browser-tab icon
 
   Backend (backend/)
     app.py                 setup, all routes, init_db() auto-setup,
                            `flask seed` and `flask tables`
     auth.py                @login_required
     database.py            shared SQLAlchemy `db`
-    models/                user.py, product.py, cart_item.py, order.py
+    models/                user.py, product.py, cart_item.py, order.py,
+                           order_item.py (the products inside an order)
     docs/                  one Swagger YAML file per endpoint
     requirements.txt       Python packages for local development
 

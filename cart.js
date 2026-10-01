@@ -10,29 +10,33 @@ async function loadCart() {
 function renderCart() {
   var area = document.getElementById('cart-area');
   if (CART.items.length === 0) {
-    area.innerHTML = '<div class="card" style="padding:50px;text-align:center;box-shadow:var(--shadow-sm)">' +
-      '<p style="margin:0 0 22px;font-size:18px">Your cart is empty.</p>' +
+    area.innerHTML = '<div class="card empty-state">' +
+      '<img src="images/products/jute-tote-bag.svg" alt="">' +
+      '<p class="empty-title">Your cart is empty.</p>' +
+      '<p class="muted">Fresh picks are waiting, like Ilam green tea and a handmade lokta journal.</p>' +
       '<a class="btn btn-primary" style="text-decoration:none" href="shop.html">Start shopping</a></div>';
     return;
   }
   var rows = CART.items.map(function (c) {
-    return '<div style="display:flex;align-items:center;gap:24px;background:var(--surface);border-radius:var(--radius);padding:18px 26px;box-shadow:var(--shadow-sm)">' +
-      '<div style="flex:none;width:56px;height:56px;border-radius:14px;background:var(--sage-100)"></div>' +
-      '<div style="flex:1"><p style="margin:0;font-size:17px;font-weight:600">' + c.name + '</p>' +
-      '<p style="margin:4px 0 0;font-size:15px" class="muted">Rs ' + c.price + ' each</p></div>' +
-      '<div style="flex:none;display:flex;align-items:center;gap:12px">' +
-      '<button data-dec="' + c.id + '" style="border:0;cursor:pointer;width:38px;height:38px;border-radius:999px;background:var(--accent-100);color:var(--accent-800);font-size:20px">&minus;</button>' +
-      '<span style="min-width:28px;text-align:center;font-size:18px;font-weight:600">' + c.quantity + '</span>' +
-      '<button data-inc="' + c.id + '" style="border:0;cursor:pointer;width:38px;height:38px;border-radius:999px;background:var(--accent-100);color:var(--accent-800);font-size:20px">+</button>' +
+    return '<div class="cart-row">' +
+      (c.image_url
+        ? '<img class="cart-thumb" src="' + escapeHtml(c.image_url) + '" alt="">'
+        : '<div class="cart-thumb"></div>') +
+      '<div class="cart-info"><a class="cart-name" href="product.html?id=' + c.product_id + '">' + escapeHtml(c.name) + '</a>' +
+      '<p class="muted" style="margin:4px 0 0;font-size:15px">' + formatRs(c.price) + ' each</p></div>' +
+      '<div class="cart-qty">' +
+      '<button data-dec="' + c.id + '" aria-label="Decrease quantity of ' + escapeHtml(c.name) + '">&minus;</button>' +
+      '<span>' + c.quantity + '</span>' +
+      '<button data-inc="' + c.id + '" aria-label="Increase quantity of ' + escapeHtml(c.name) + '">+</button>' +
       '</div>' +
-      '<p style="flex:none;width:110px;text-align:right;margin:0;font-size:18px;font-family:var(--font-heading);color:var(--accent-700)">Rs ' + c.line_total + '</p>' +
-      '<button data-rm="' + c.id + '" class="btn btn-ghost" style="flex:none;font-size:14px;padding:8px 16px">Remove</button>' +
+      '<p class="cart-line-total">' + formatRs(c.line_total) + '</p>' +
+      '<button data-rm="' + c.id + '" class="btn btn-ghost cart-remove">Remove</button>' +
       '</div>';
   }).join('');
   area.innerHTML = '<div style="display:flex;flex-direction:column;gap:14px">' + rows +
-    '<div style="display:flex;align-items:center;justify-content:flex-end;gap:28px;margin-top:12px">' +
+    '<div class="cart-summary">' +
     '<span style="font-size:18px">Total</span>' +
-    '<span style="font-family:var(--font-heading);font-size:30px;color:var(--accent-700)">Rs ' + CART.total + '</span>' +
+    '<span class="cart-total">' + formatRs(CART.total) + '</span>' +
     '<a class="btn btn-primary" style="text-decoration:none" href="checkout.html">Proceed to checkout</a>' +
     '</div></div>';
 }
@@ -66,6 +70,7 @@ async function removeItem(itemId) {
 
 document.addEventListener('DOMContentLoaded', async function () {
   if (!(await requireLogin())) return;
+  renderSteps('steps', 0);
   await loadCart();
   document.getElementById('cart-area').addEventListener('click', function (e) {
     var inc = e.target.getAttribute('data-inc');

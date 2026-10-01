@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Shop &middot; SajiloBazar</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="styles.css">
 <script src="api.js" defer></script>
 <script src="common.js" defer></script>
@@ -22,6 +23,25 @@
 <div class="field">
 <span class="field-label" id="category-label">Category</span>
 <div id="categories" class="chips" role="group" aria-labelledby="category-label"></div>
+</div>
+</div>
+<div class="shop-filters">
+<div class="field">
+<label for="sort">Sort by</label>
+<select id="sort" class="input">
+<option value="featured">Featured</option>
+<option value="price-asc">Price: low to high</option>
+<option value="price-desc">Price: high to low</option>
+<option value="name">Name: A to Z</option>
+</select>
+</div>
+<div class="field">
+<span class="field-label" id="price-label">Price (Rs)</span>
+<div class="price-range" role="group" aria-labelledby="price-label">
+<input id="price-min" class="input" type="number" min="0" inputmode="numeric" placeholder="Min" aria-label="Minimum price">
+<span aria-hidden="true">&ndash;</span>
+<input id="price-max" class="input" type="number" min="0" inputmode="numeric" placeholder="Max" aria-label="Maximum price">
+</div>
 </div>
 </div>
 <p id="result-count" class="muted" style="margin:0 0 14px;font-size:14px" aria-live="polite"></p>

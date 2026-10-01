@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
+  submitOnEnter('li-submit', ['li-email', 'li-pass']);
+
   document.getElementById('li-submit').addEventListener('click', async function () {
     err.hidden = true;
     var email = document.getElementById('li-email').value.trim().toLowerCase();
