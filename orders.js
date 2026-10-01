@@ -4,26 +4,28 @@ function formatDate(iso) {
     ', ' + new Date(iso).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
 
-function renderOrder(o) {
-  var cod = o.payment_method === 'cod';
-  var items = o.items.length
-    ? '<ul class="order-items">' + o.items.map(function (i) {
-        return '<li>' + (i.image_url ? '<img src="' + escapeHtml(i.image_url) + '" alt="">' : '') +
-          '<span>' + escapeHtml(i.name) + ' <span class="muted">&times; ' + i.quantity + '</span></span></li>';
-      }).join('') + '</ul>'
-    : '<p class="muted" style="margin:0;font-size:14px">Item details were not recorded for this order.</p>';
+function formatShortDate(iso) {
+  return iso ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+}
 
-  return '<article class="order-card">' +
-    '<div class="order-head">' +
-      '<span class="order-id">ORD-' + o.id + '</span>' +
-      '<span class="status-badge ' + (cod ? 'status-pending' : 'status-paid') + '">' +
-        (cod ? 'Pay on delivery' : 'Paid') + '</span>' +
-      '<span class="muted order-date">' + formatDate(o.created_at) + '</span>' +
-      '<span class="order-total">' + formatRs(o.total) + '</span>' +
-    '</div>' +
-    items +
-    '<p class="order-meta muted">' + escapeHtml(paymentLabel(o.payment_method)) + ' &middot; Deliver to ' + escapeHtml(o.address) + '</p>' +
-    '</article>';
+function renderRow(o) {
+  var cod = o.payment_method === 'cod';
+  var units = o.items.reduce(function (n, i) { return n + i.quantity; }, 0);
+  // Hovering the item count lists what was in the order.
+  var names = o.items.map(function (i) { return i.name + ' × ' + i.quantity; }).join(', ');
+  var items = units
+    ? '<span title="' + escapeHtml(names) + '">' + units + (units === 1 ? ' item' : ' items') + '</span>'
+    : '<span class="muted" title="Item details were not recorded for this order">&mdash;</span>';
+
+  return '<tr>' +
+    '<td class="order-id">ORD-' + o.id + '</td>' +
+    '<td class="col-date" title="' + escapeHtml(formatDate(o.created_at)) + '">' + formatShortDate(o.created_at) + '</td>' +
+    '<td>' + items + '</td>' +
+    '<td class="col-payment">' + escapeHtml(paymentLabel(o.payment_method)) + '</td>' +
+    '<td><span class="status-badge ' + (cod ? 'status-pending' : 'status-paid') + '">' +
+      (cod ? 'Pending' : 'Paid') + '</span></td>' +
+    '<td class="num order-total">' + formatRs(o.total) + '</td>' +
+    '</tr>';
 }
 
 document.addEventListener('DOMContentLoaded', async function () {
@@ -48,6 +50,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     return;
   }
 
-  area.innerHTML = '<div style="display:flex;flex-direction:column;gap:16px">' +
-    orders.map(renderOrder).join('') + '</div>';
+  area.innerHTML = '<div class="card orders-table-wrap"><table class="orders-table">' +
+    '<thead><tr><th scope="col">Order</th><th scope="col" class="col-date">Date</th><th scope="col">Items</th>' +
+    '<th scope="col" class="col-payment">Payment</th><th scope="col">Status</th><th scope="col" class="num">Total</th></tr></thead>' +
+    '<tbody>' + orders.map(renderRow).join('') + '</tbody></table></div>';
 });
