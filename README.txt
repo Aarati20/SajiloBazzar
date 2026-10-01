@@ -406,7 +406,7 @@ carts or orders.
     orders.html   + .js    My orders
     api.js                 calls the API and picks its address automatically
                            (127.0.0.1:5000 locally, /api on Vercel)
-    common.js              header (with phone menu), footer, checkout steps,
+    common.js              header (with phone menu), checkout steps,
                            toasts, Requirements drawer, login check, and
                            helpers such as formatRs() and submitOnEnter()
     styles.css             the only stylesheet

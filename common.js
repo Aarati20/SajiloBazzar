@@ -102,19 +102,6 @@ function bumpCart() {
   badge.classList.add('bump');
 }
 
-function renderFooter() {
-  if (document.querySelector('footer.site')) return;
-  var f = document.createElement('footer');
-  f.className = 'site';
-  f.innerHTML = '<div class="footer-inner">' +
-    '<div><span class="brand">SajiloBazar</span>' +
-    '<p class="muted" style="margin:6px 0 0;font-size:14px">A practice shop for software testing. No real orders or payments are made.</p></div>' +
-    '<nav aria-label="Footer"><a href="shop.html">Shop</a><a href="cart.html">Cart</a><a href="orders.html">My orders</a>' +
-    '<button type="button" class="link-button" onclick="openReqs()">Requirements</button></nav>' +
-    '</div>';
-  document.body.appendChild(f);
-}
-
 // Cart → Checkout → Pay → Done progress bar. `current` is the step's index;
 // steps before it are shown as done.
 var CHECKOUT_STEPS = ['Cart', 'Checkout', 'Payment', 'Done'];
@@ -239,6 +226,5 @@ function openReqs() {
 // Render the header on page load. Pages that need login will call requireLogin()
 // themselves and re-render after the session is warm.
 document.addEventListener('DOMContentLoaded', function () {
-  renderFooter();
   loadSession().then(renderHeader);
 });
