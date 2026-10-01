@@ -1,7 +1,11 @@
-Flask
-Flask-SQLAlchemy
-Flask-Cors
-flasgger
-PyJWT
-python-dotenv
-psycopg2-binary
+# Versions are bounded so a deploy can't pick up a breaking release by
+# surprise (SQLAlchemy 2.1 changed the default Postgres driver and took the
+# API down). Raise a bound deliberately after testing the new version.
+Flask>=3.1,<4
+Flask-SQLAlchemy>=3.1,<4
+SQLAlchemy>=2.0,<2.2
+Flask-Cors>=6,<7
+flasgger==0.9.7.1
+PyJWT>=2.10,<3
+python-dotenv>=1,<2
+psycopg2-binary>=2.9,<3

@@ -48,9 +48,13 @@ if not db_url:
         )
     db_url = f"sqlite:///{DB_PATH}"
 
-# Neon / Heroku give you postgres:// — SQLAlchemy 2 wants postgresql://
-if db_url.startswith("postgres://"):
-    db_url = db_url.replace("postgres://", "postgresql://", 1)
+# Neon / Heroku give you postgres://, and a bare postgresql:// lets SQLAlchemy
+# pick the driver itself (2.1 switched that default from psycopg2 to psycopg 3,
+# which isn't installed, and every request crashed). Name psycopg2 explicitly.
+for prefix in ("postgres://", "postgresql://"):
+    if db_url.startswith(prefix):
+        db_url = "postgresql+psycopg2://" + db_url[len(prefix):]
+        break
 
 app.config["SQLALCHEMY_DATABASE_URI"] = db_url
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
