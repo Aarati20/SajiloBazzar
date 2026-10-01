@@ -377,6 +377,12 @@ main {
   background: var(--accent-100);
 }
 
+.chip-skeleton {
+  display: inline-block;
+  height: 36px;
+  border-color: transparent;
+}
+
 .chip-active,
 .chip-active:hover {
   background: var(--sage-800);
@@ -796,7 +802,6 @@ header.site nav a[aria-current="page"] {
 
 .price-range .input {
   width: 110px;
-  appearance: textfield;
 }
 
 a.product-name {
@@ -886,9 +891,7 @@ a.product-name:hover {
 }
 
 .qty-stepper input::-webkit-inner-spin-button,
-.qty-stepper input::-webkit-outer-spin-button,
-.price-range .input::-webkit-inner-spin-button,
-.price-range .input::-webkit-outer-spin-button {
+.qty-stepper input::-webkit-outer-spin-button {
   appearance: none;
   margin: 0;
 }

@@ -22,7 +22,10 @@
 </div>
 <div class="field">
 <span class="field-label" id="category-label">Category</span>
-<div id="categories" class="chips" role="group" aria-labelledby="category-label"></div>
+<div id="categories" class="chips" role="group" aria-labelledby="category-label">
+<!-- placeholders until the real categories load, so the filters below don't jump -->
+<span class="chip chip-skeleton skeleton" style="width:44px" aria-hidden="true"></span><span class="chip chip-skeleton skeleton" style="width:86px" aria-hidden="true"></span><span class="chip chip-skeleton skeleton" style="width:104px" aria-hidden="true"></span><span class="chip chip-skeleton skeleton" style="width:70px" aria-hidden="true"></span><span class="chip chip-skeleton skeleton" style="width:82px" aria-hidden="true"></span><span class="chip chip-skeleton skeleton" style="width:60px" aria-hidden="true"></span><span class="chip chip-skeleton skeleton" style="width:104px" aria-hidden="true"></span>
+</div>
 </div>
 </div>
 <div class="shop-filters">
@@ -38,9 +41,9 @@
 <div class="field">
 <span class="field-label" id="price-label">Price (Rs)</span>
 <div class="price-range" role="group" aria-labelledby="price-label">
-<input id="price-min" class="input" type="number" min="0" inputmode="numeric" placeholder="Min" aria-label="Minimum price">
+<input id="price-min" class="input" type="text" inputmode="numeric" maxlength="7" autocomplete="off" placeholder="Min" aria-label="Minimum price">
 <span aria-hidden="true">&ndash;</span>
-<input id="price-max" class="input" type="number" min="0" inputmode="numeric" placeholder="Max" aria-label="Maximum price">
+<input id="price-max" class="input" type="text" inputmode="numeric" maxlength="7" autocomplete="off" placeholder="Max" aria-label="Maximum price">
 </div>
 </div>
 </div>

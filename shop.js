@@ -291,13 +291,17 @@ document.addEventListener('DOMContentLoaded', async function () {
     render();
   });
 
-  // Blank means "no limit" on that side of the range.
+  // Blank means "no limit" on that side of the range. These are text boxes,
+  // not type="number", because a number box changes its value when the page
+  // is scrolled over it, which re-filtered the grid mid-scroll.
   function readPrice(id) {
-    var v = document.getElementById(id).value.trim();
-    return v === '' || isNaN(Number(v)) ? null : Number(v);
+    var v = document.getElementById(id).value;
+    return v === '' ? null : Number(v);
   }
   ['price-min', 'price-max'].forEach(function (id) {
-    document.getElementById(id).addEventListener('input', function () {
+    document.getElementById(id).addEventListener('input', function (e) {
+      var digits = e.target.value.replace(/\D/g, '');
+      if (digits !== e.target.value) e.target.value = digits;
       VIEW.minPrice = readPrice('price-min');
       VIEW.maxPrice = readPrice('price-max');
       VIEW.page = 1;
