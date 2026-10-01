@@ -50,8 +50,10 @@ Files:
                   (probes /me to decide "am I logged in?" since the cookie
                   is HttpOnly and can't be read from JS)
   styles.css      the only stylesheet
+  images/products product illustrations (SVG); each product's image_url
+                  points here, relative to the site root
 
-Click the Requirements button in the header to see the 24 rules (FR-1 to FR-23, NFR-1).
+Click the Requirements button in the header to see the 25 rules (FR-1 to FR-24, NFR-1).
 Test the app against them. The app contains planted bugs: find them, reproduce them,
 and report them with steps, expected result and actual result.
 

@@ -106,28 +106,85 @@ Swagger(
 
 # ----- Auto-create tables + seed on first startup --------------------------
 
+# (name, price, category, description). The image is derived from the name:
+# images/products/<slug>.svg in the frontend root.
 SAMPLE_PRODUCTS = [
-    ("Cotton kurta", 1450, "Clothing"),
-    ("Bluetooth earbuds", 2299, "Electronics"),
-    ("Steel water bottle", 650, "Home"),
-    ("Ilam green tea", 340, "Grocery"),
-    ("Canvas backpack", 1899, "Bags"),
-    ("Notebook set", 95, "Stationery"),
+    ("Cotton kurta", 1450, "Clothing", "Breathable handloom cotton kurta with a mandarin collar. Easy to wash, made for everyday wear."),
+    ("Dhaka topi", 650, "Clothing", "Traditional Nepali cap woven from Palpali dhaka fabric in classic red, black and orange."),
+    ("Pashmina shawl", 3200, "Clothing", "Soft, warm shawl hand-loomed from Himalayan pashmina with a fringed edge."),
+    ("Woolen socks", 299, "Clothing", "Hand-knitted sheep wool socks that keep your feet warm through Kathmandu winters."),
+    ("Bluetooth earbuds", 2299, "Electronics", "Wireless earbuds with a pocket charging case and up to 20 hours of total playtime."),
+    ("Power bank", 1799, "Electronics", "10,000 mAh power bank with USB-C fast charging, enough for two full phone charges."),
+    ("USB-C cable", 349, "Electronics", "1 m braided USB-C to USB-C cable that supports fast charging and data transfer."),
+    ("LED desk lamp", 1250, "Electronics", "Adjustable LED desk lamp with three brightness levels, easy on the eyes for late study."),
+    ("Steel water bottle", 650, "Home", "Insulated stainless steel bottle, 750 ml. Keeps water cold for 24 hours."),
+    ("Copper jug", 1150, "Home", "Hand-hammered pure copper jug, 1.5 L, for storing drinking water the traditional way."),
+    ("Ceramic mug set", 899, "Home", "Set of two glazed ceramic mugs, 300 ml each. Microwave and dishwasher safe."),
+    ("Cotton bedsheet", 1599, "Home", "Double bedsheet in soft printed cotton with two matching pillow covers."),
+    ("Ilam green tea", 340, "Grocery", "Hand-picked green tea leaves from the hills of Ilam, 100 g. Light and fresh."),
+    ("Himalayan pink salt", 180, "Grocery", "Natural rock salt from the Himalayas, 500 g jar, coarse ground."),
+    ("Basmati rice", 950, "Grocery", "Long-grain aged basmati rice, 5 kg bag. Fluffy and fragrant when cooked."),
+    ("Wild honey", 720, "Grocery", "Raw forest honey from Nepal's hills, 500 g. Unfiltered and unprocessed."),
+    ("Canvas backpack", 1899, "Bags", "Durable canvas backpack with a padded laptop sleeve and two side pockets."),
+    ("Jute tote bag", 450, "Bags", "Reusable jute tote with cotton handles, roomy enough for a full grocery run."),
+    ("Leather wallet", 1199, "Bags", "Slim bifold wallet in genuine leather with six card slots and a note pocket."),
+    ("Travel duffel", 2499, "Bags", "Water-resistant 40 L duffel with a shoulder strap, sized for a weekend trip."),
+    ("Notebook set", 95, "Stationery", "Pack of three ruled A5 notebooks, 80 pages each."),
+    ("Gel pen pack", 120, "Stationery", "Pack of five smooth-writing gel pens in assorted colours."),
+    ("Lokta paper journal", 380, "Stationery", "Handmade journal of Nepali lokta paper, bound with a cloth tie."),
+    ("Sketchbook A4", 290, "Stationery", "A4 spiral sketchbook with 50 sheets of heavy 160 gsm drawing paper."),
 ]
+
+
+def _image_for(name):
+    return "images/products/" + re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-") + ".svg"
+
+
+def _add_missing_product_columns():
+    """Add columns introduced after the products table was first created.
+
+    db.create_all() only creates missing tables — it never alters existing
+    ones — so an already-deployed database needs these added by hand.
+    """
+    from sqlalchemy import inspect
+
+    existing = {c["name"] for c in inspect(db.engine).get_columns("products")}
+    for column, ddl in (
+        ("image_url", "VARCHAR(255)"),
+        ("description", "VARCHAR(500)"),
+    ):
+        if column not in existing:
+            db.session.execute(db.text(f"ALTER TABLE products ADD COLUMN {column} {ddl}"))
+    db.session.commit()
 
 
 def init_db():
     """Create missing tables and seed demo data. Safe to call repeatedly."""
     db.create_all()
+    _add_missing_product_columns()
 
     if not User.query.filter_by(email="aarati@test.com").first():
         demo = User(name="Aarati Adhikari", email="aarati@test.com", phone="9812345678")
         demo.set_password("test1234")
         db.session.add(demo)
 
-    for name, price, tag in SAMPLE_PRODUCTS:
-        if not Product.query.filter_by(name=name).first():
-            db.session.add(Product(name=name, price=price, tag=tag))
+    for name, price, tag, description in SAMPLE_PRODUCTS:
+        product = Product.query.filter_by(name=name).first()
+        if not product:
+            db.session.add(
+                Product(
+                    name=name,
+                    price=price,
+                    tag=tag,
+                    image_url=_image_for(name),
+                    description=description,
+                )
+            )
+        else:
+            # Backfill rows seeded before images/descriptions existed, without
+            # touching price or anything else that may have been edited since.
+            product.image_url = product.image_url or _image_for(name)
+            product.description = product.description or description
 
     db.session.commit()
 
@@ -237,8 +294,11 @@ MAX_SEARCH_LENGTH = 100
 @app.get("/products")
 @swag_from("docs/products.yml")
 def list_products():
-    """List products, optionally filtered by ?q= against name or tag."""
+    """List products, optionally filtered by ?category= and/or ?q= (name or tag)."""
     query = Product.query
+    category = (request.args.get("category") or "").strip()
+    if category:
+        query = query.filter(db.func.lower(Product.tag) == category.lower())
     term = (request.args.get("q") or "").strip()
     if term:
         if len(term) > MAX_SEARCH_LENGTH:

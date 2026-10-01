@@ -25,6 +25,7 @@ var REQS = [
   ['FR-21', 'The payment screen needs a registered wallet number and the correct 4-digit MPIN.'],
   ['FR-22', 'Cancelling on the payment screen returns the user to checkout with the cart untouched.'],
   ['FR-23', 'The shop search box filters products by name or category, ignoring upper/lower case.'],
+  ['FR-24', 'The shop shows 8 products per page, can be filtered by category, and each product has an image and a quick view with its description.'],
   ['NFR-1', 'Every error message tells the user exactly what to fix.']
 ];
 

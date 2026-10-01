@@ -14,11 +14,20 @@
 <main>
 <h1 style="font-size:34px;margin:0 0 6px">Today&rsquo;s picks</h1>
 <p style="font-size:16px;margin:0 0 20px" class="muted">Maximum 10 of any single item per order.</p>
-<div class="field" style="max-width:420px;margin:0 0 26px">
+<div class="shop-toolbar">
+<div class="field" style="flex:1;max-width:420px">
 <label for="search">Search products</label>
 <input id="search" class="input" type="search" placeholder="Search by name or category" maxlength="100" autocomplete="off">
 </div>
-<div id="grid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:26px"></div>
+<div class="field">
+<span class="field-label" id="category-label">Category</span>
+<div id="categories" class="chips" role="group" aria-labelledby="category-label"></div>
+</div>
+</div>
+<p id="result-count" class="muted" style="margin:0 0 14px;font-size:14px" aria-live="polite"></p>
+<div id="grid" class="product-grid"></div>
+<nav id="pager" class="pager" aria-label="Product pages"></nav>
+<dialog id="quick-view" class="quick-view" aria-labelledby="qv-name"></dialog>
 </main>
 </body>
 </html>
