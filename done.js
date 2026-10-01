@@ -14,8 +14,8 @@ function renderSummary(order) {
 }
 
 document.addEventListener('DOMContentLoaded', async function () {
-  if (!(await requireLogin())) return;
   renderSteps('steps', 4);
+  if (!(await requireLogin())) return;
   var el = document.getElementById('done-id');
   var id = new URLSearchParams(location.search).get('id');
   if (!id) { el.textContent = '(unknown)'; return; }

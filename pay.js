@@ -1,5 +1,6 @@
 // Fake wallet screen: MPIN 1234 is accepted, anything else is rejected.
 document.addEventListener('DOMContentLoaded', async function () {
+  renderSteps('steps', 2);
   if (!(await requireLogin())) return;
 
   var params = new URLSearchParams(location.search);
@@ -10,7 +11,6 @@ document.addEventListener('DOMContentLoaded', async function () {
   document.getElementById('pay-title').textContent = 'Pay with ' + method;
   document.getElementById('pay-id-label').textContent = method + ' mobile number';
 
-  renderSteps('steps', 2);
   var cart = await api('/cart');
   // Nothing to pay for: send the user back to the cart's empty state.
   if (!cart.items.length) { location.replace('cart.html'); return; }

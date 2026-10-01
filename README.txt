@@ -156,7 +156,9 @@ Useful things to know while testing:
   - Your login is an HttpOnly cookie called "sajilo-token". You can see it in
     DevTools → Application → Cookies, but JavaScript cannot read it.
   - All data (users, cart, orders) is stored in the backend database, not in
-    the browser. Clearing localStorage does not reset anything.
+    the browser. Clearing localStorage does not reset anything. (The header
+    keeps a copy of your name and cart count in sessionStorage for the
+    current tab, only so it can draw instantly between pages.)
   - To log out, click "Log out", or delete the sajilo-token cookie and reload.
   - To start over with fresh data, see "Resetting the database" in section 5.
   - The API can be tested on its own too. See section 4.

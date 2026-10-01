@@ -26,6 +26,31 @@
   box-sizing: border-box;
 }
 
+/* Keep room for the scrollbar on every page so content doesn't shift
+   sideways when moving between short and long pages. */
+html {
+  scrollbar-gutter: stable;
+}
+
+/* Smooth page-to-page navigation in browsers that support it: the content
+   cross-fades while the header (named below) stays put. */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.18s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none;
+  }
+}
+
 body {
   margin: 0;
   background: var(--bg);
@@ -191,12 +216,14 @@ header.site {
   display: flex;
   align-items: center;
   gap: 20px;
+  min-height: 68px;   /* same height before and after the nav is drawn */
   padding: 16px 32px;
   background: var(--surface);
   box-shadow: var(--shadow-sm);
   position: sticky;
   top: 0;
   z-index: 20;
+  view-transition-name: site-header;
 }
 
 header.site .brand {
@@ -1204,7 +1231,7 @@ a.product-name:hover {
 
 .orders-table td {
   padding: 16px 24px;
-  vertical-align: top;
+  vertical-align: middle;
   border-bottom: 1px solid var(--neutral-200);
 }
 

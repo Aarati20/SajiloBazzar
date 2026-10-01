@@ -69,8 +69,8 @@ async function removeItem(itemId) {
 }
 
 document.addEventListener('DOMContentLoaded', async function () {
-  if (!(await requireLogin())) return;
   renderSteps('steps', 0);
+  if (!(await requireLogin())) return;
   await loadCart();
   document.getElementById('cart-area').addEventListener('click', function (e) {
     var inc = e.target.getAttribute('data-inc');

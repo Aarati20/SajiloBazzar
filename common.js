@@ -35,8 +35,15 @@ var CART_COUNT = 0;
 
 // Fetch /me + /cart to warm the cache. Returns false if not logged in.
 // The auth cookie is HttpOnly so we can't check it from JS — /me itself is
-// the "am I logged in?" probe (401 → not logged in).
-async function loadSession() {
+// the "am I logged in?" probe (401 → not logged in). The result is shared,
+// so the header and requireLogin() don't each make their own requests.
+var sessionPromise = null;
+function loadSession() {
+  if (!sessionPromise) sessionPromise = fetchSession();
+  return sessionPromise;
+}
+
+async function fetchSession() {
   try {
     CURRENT_USER = await api('/me');
     var cart = await api('/cart');
@@ -58,6 +65,32 @@ async function requireLogin() {
 
 async function redirectIfLoggedIn() {
   if (await loadSession()) location.href = 'shop.html';
+}
+
+// The header is drawn straight away from the last page's copy (name + cart
+// count, kept for this browser tab only) so it doesn't flash empty while /me
+// loads, then redrawn with fresh data. Nothing here is trusted: pages still
+// call requireLogin(), and the server decides who is logged in.
+var HEADER_CACHE_KEY = 'sajilo-header';
+
+function saveHeaderCache() {
+  try {
+    if (CURRENT_USER) {
+      sessionStorage.setItem(HEADER_CACHE_KEY, JSON.stringify({ name: CURRENT_USER.name, cart: CART_COUNT }));
+    } else {
+      sessionStorage.removeItem(HEADER_CACHE_KEY);
+    }
+  } catch (e) { /* storage blocked: the header just renders after /me */ }
+}
+
+function restoreHeaderCache() {
+  try {
+    var cached = JSON.parse(sessionStorage.getItem(HEADER_CACHE_KEY) || 'null');
+    if (cached && cached.name) {
+      CURRENT_USER = { name: cached.name };
+      CART_COUNT = cached.cart || 0;
+    }
+  } catch (e) { /* ignore a missing or unreadable cache */ }
 }
 
 function renderHeader() {
@@ -91,6 +124,7 @@ function renderHeader() {
     var open = el.classList.toggle('menu-open');
     toggle.setAttribute('aria-expanded', open);
   });
+  saveHeaderCache();
 }
 
 // Little bounce on the header cart count after something is added.
@@ -192,6 +226,7 @@ async function logout() {
   try { await api('/logout', { method: 'POST' }); } catch (e) {}
   CURRENT_USER = null;
   CART_COUNT = 0;
+  saveHeaderCache();
   location.href = 'login.html';
 }
 
@@ -223,8 +258,9 @@ function openReqs() {
   document.body.appendChild(back);
 }
 
-// Render the header on page load. Pages that need login will call requireLogin()
-// themselves and re-render after the session is warm.
-document.addEventListener('DOMContentLoaded', function () {
-  loadSession().then(renderHeader);
-});
+// Draw the header immediately from the cached copy (scripts are deferred, so
+// the page's HTML is already parsed), then again once the session is fresh.
+// Pages that need login also call requireLogin() themselves.
+restoreHeaderCache();
+renderHeader();
+loadSession().then(renderHeader);

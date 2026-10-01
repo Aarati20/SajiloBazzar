@@ -24,9 +24,9 @@ async function prefillAddress() {
 }
 
 document.addEventListener('DOMContentLoaded', async function () {
+  renderSteps('steps', 1);
   if (!(await requireLogin())) return;
 
-  renderSteps('steps', 1);
   var cart = await api('/cart');
   // Nothing to check out: send the user back to the cart's empty state.
   if (!cart.items.length) { location.replace('cart.html'); return; }
