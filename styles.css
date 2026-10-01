@@ -1204,6 +1204,7 @@ a.product-name:hover {
 
 .orders-table td {
   padding: 16px 24px;
+  vertical-align: top;
   border-bottom: 1px solid var(--neutral-200);
 }
 
@@ -1219,6 +1220,34 @@ a.product-name:hover {
   text-align: right;
 }
 
+.orders-table .col-items {
+  width: 40%;
+  white-space: normal;
+}
+
+.order-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.order-items li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.order-items img {
+  flex: none;
+  width: 40px;
+  height: 30px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
 .order-id {
   font-family: var(--font-heading);
   font-size: 17px;
@@ -1230,11 +1259,27 @@ a.product-name:hover {
   font-size: 17px;
 }
 
+.status-inline {
+  display: none;
+}
+
 /* Phones: keep order, items, status and total; drop date and payment. */
 @media (width <= 640px) {
   .orders-table .col-date,
-  .orders-table .col-payment {
+  .orders-table .col-payment,
+  .orders-table .col-status,
+  .order-items img {
     display: none;
+  }
+
+  .status-inline {
+    display: block;
+    margin-top: 6px;
+    font-family: var(--font-body);
+  }
+
+  .orders-table .col-items {
+    width: auto;
   }
 
   .orders-table th,

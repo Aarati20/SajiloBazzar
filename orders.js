@@ -10,20 +10,24 @@ function formatShortDate(iso) {
 
 function renderRow(o) {
   var cod = o.payment_method === 'cod';
-  var units = o.items.reduce(function (n, i) { return n + i.quantity; }, 0);
-  // Hovering the item count lists what was in the order.
-  var names = o.items.map(function (i) { return i.name + ' × ' + i.quantity; }).join(', ');
-  var items = units
-    ? '<span title="' + escapeHtml(names) + '">' + units + (units === 1 ? ' item' : ' items') + '</span>'
-    : '<span class="muted" title="Item details were not recorded for this order">&mdash;</span>';
+  var items = o.items.length
+    ? '<ul class="order-items">' + o.items.map(function (i) {
+        return '<li>' + (i.image_url ? '<img src="' + escapeHtml(i.image_url) + '" alt="">' : '') +
+          '<span>' + escapeHtml(i.name) + ' <span class="muted">&times; ' + i.quantity + '</span></span></li>';
+      }).join('') + '</ul>'
+    : '<span class="muted">Not recorded</span>';
 
+  var badge = '<span class="status-badge ' + (cod ? 'status-pending' : 'status-paid') + '">' +
+    (cod ? 'Pending' : 'Paid') + '</span>';
+
+  // On phones the Status column is hidden and the badge sits under the
+  // order number instead (see .status-inline in styles.css).
   return '<tr>' +
-    '<td class="order-id">ORD-' + o.id + '</td>' +
+    '<td class="order-id">ORD-' + o.id + '<span class="status-inline">' + badge + '</span></td>' +
     '<td class="col-date" title="' + escapeHtml(formatDate(o.created_at)) + '">' + formatShortDate(o.created_at) + '</td>' +
-    '<td>' + items + '</td>' +
+    '<td class="col-items">' + items + '</td>' +
     '<td class="col-payment">' + escapeHtml(paymentLabel(o.payment_method)) + '</td>' +
-    '<td><span class="status-badge ' + (cod ? 'status-pending' : 'status-paid') + '">' +
-      (cod ? 'Pending' : 'Paid') + '</span></td>' +
+    '<td class="col-status">' + badge + '</td>' +
     '<td class="num order-total">' + formatRs(o.total) + '</td>' +
     '</tr>';
 }
@@ -52,6 +56,6 @@ document.addEventListener('DOMContentLoaded', async function () {
 
   area.innerHTML = '<div class="card orders-table-wrap"><table class="orders-table">' +
     '<thead><tr><th scope="col">Order</th><th scope="col" class="col-date">Date</th><th scope="col">Items</th>' +
-    '<th scope="col" class="col-payment">Payment</th><th scope="col">Status</th><th scope="col" class="num">Total</th></tr></thead>' +
+    '<th scope="col" class="col-payment">Payment</th><th scope="col" class="col-status">Status</th><th scope="col" class="num">Total</th></tr></thead>' +
     '<tbody>' + orders.map(renderRow).join('') + '</tbody></table></div>';
 });
