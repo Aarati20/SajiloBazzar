@@ -15,6 +15,15 @@
 <main>
 <h1 style="font-size:34px;margin:0 0 30px">My orders</h1>
 <div id="orders-area"></div>
+<dialog id="confirm-delete" class="confirm-dialog" aria-labelledby="cd-title">
+  <h2 id="cd-title" class="confirm-title"></h2>
+  <p class="muted" style="margin:0 0 22px">It will be removed from My orders. This can&rsquo;t be undone.</p>
+  <p id="cd-error" class="error" role="alert" hidden style="margin-bottom:16px"></p>
+  <div class="confirm-actions">
+    <button type="button" class="btn btn-ghost" id="cd-cancel">Cancel</button>
+    <button type="button" class="btn btn-danger" id="cd-confirm">Delete order</button>
+  </div>
+</dialog>
 </main>
 </body>
 </html>

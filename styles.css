@@ -1263,6 +1263,72 @@ a.product-name:hover {
   display: none;
 }
 
+.col-actions {
+  width: 1%;
+  text-align: right;
+}
+
+.delete-order {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  font-size: 14px;
+  color: #a5352a;
+}
+
+.delete-order:hover {
+  background: #fbe4e0;
+}
+
+.btn-danger {
+  background: #b23a2e;
+  color: #fff;
+}
+
+.btn-danger:hover {
+  background: #922c22;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.confirm-dialog {
+  border: 0;
+  border-radius: var(--radius);
+  padding: 30px;
+  width: min(420px, calc(100vw - 32px));
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-lg);
+}
+
+.confirm-dialog::backdrop {
+  background: rgb(32 30 29 / 50%);
+}
+
+.confirm-title {
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 /* Phones: keep order, items, status and total; drop date and payment. */
 @media (width <= 640px) {
   .orders-table .col-date,
@@ -1280,6 +1346,14 @@ a.product-name:hover {
 
   .orders-table .col-items {
     width: auto;
+  }
+
+  .delete-label {
+    display: none;
+  }
+
+  .delete-order {
+    padding: 8px;
   }
 
   .orders-table th,

@@ -23,7 +23,9 @@ class Order(db.Model):
     created_at = db.Column(
         db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
-    items = db.relationship("OrderItem", order_by="OrderItem.id")
+    items = db.relationship(
+        "OrderItem", order_by="OrderItem.id", cascade="all, delete-orphan"
+    )
 
     VALID_METHODS = ("esewa", "khalti", "cod")
     MIN_TOTAL = 100

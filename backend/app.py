@@ -577,6 +577,19 @@ def get_order(order_id):
     return jsonify(order.to_dict())
 
 
+@app.delete("/orders/<int:order_id>")
+@login_required
+@swag_from("docs/orders_delete.yml")
+def delete_order(order_id):
+    """Delete one of my orders, with its items."""
+    order = Order.query.filter_by(id=order_id, user_id=request.user.id).first()
+    if not order:
+        return jsonify({"error": "Order not found"}), 404
+    db.session.delete(order)
+    db.session.commit()
+    return "", 204
+
+
 # ----- `flask seed` --------------------------------------------------------
 
 

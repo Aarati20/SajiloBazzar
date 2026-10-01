@@ -253,6 +253,7 @@ Endpoints
   POST   /orders             (auth)    place an order from the cart
   GET    /orders             (auth)    list my orders, newest first
   GET    /orders/<id>        (auth)    one order (used by done.html)
+  DELETE /orders/<id>        (auth)    delete one of my orders and its items
 
 Every order includes its items (name, price, quantity, line_total,
 image_url). Orders placed before items were recorded have an empty list.
