@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from database import db
 
 from .cart_item import CartItem
+from .order_item import OrderItem
 
 
 class Order(db.Model):
@@ -22,6 +23,7 @@ class Order(db.Model):
     created_at = db.Column(
         db.DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
+    items = db.relationship("OrderItem", order_by="OrderItem.id")
 
     VALID_METHODS = ("esewa", "khalti", "cod")
     MIN_TOTAL = 100
@@ -50,6 +52,14 @@ class Order(db.Model):
         )
         db.session.add(order)
         for i in items:
+            order.items.append(
+                OrderItem(
+                    product_id=i.product_id,
+                    name=i.product.name,
+                    price=i.product.price,
+                    quantity=i.quantity,
+                )
+            )
             db.session.delete(i)
         db.session.commit()
         return order, None
@@ -61,4 +71,6 @@ class Order(db.Model):
             "payment_method": self.payment_method,
             "total": self.total,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+            # Empty for orders placed before order lines were recorded.
+            "items": [i.to_dict() for i in self.items],
         }

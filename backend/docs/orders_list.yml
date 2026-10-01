@@ -3,4 +3,9 @@ summary: List my past orders (newest first).
 security:
   - Bearer: []
 responses:
-  200: {description: "Orders list."}
+  200:
+    description: >
+      Orders list. Each order has id, address, payment_method, total,
+      created_at and items (product_id, name, price, quantity, line_total,
+      image_url). items is empty for orders placed before order lines
+      were recorded.

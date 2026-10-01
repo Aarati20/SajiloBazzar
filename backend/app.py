@@ -8,6 +8,7 @@ Where things live:
   models/product.py  Product
   models/cart_item.py CartItem + line_total + add_for_user
   models/order.py    Order + create_from_cart
+  models/order_item.py OrderItem (a product line inside a placed order)
 
 Swagger docs:  http://localhost:5000/docs
 OpenAPI JSON:  http://localhost:5000/apispec_1.json   (import into Postman)
@@ -319,6 +320,16 @@ def list_products():
             )
         )
     return jsonify([p.to_dict() for p in query.order_by(Product.id).all()])
+
+
+@app.get("/products/<int:product_id>")
+@swag_from("docs/product_get.yml")
+def get_product(product_id):
+    """Fetch one product (used by the product detail page)."""
+    product = db.session.get(Product, product_id)
+    if not product:
+        return jsonify({"error": "Product not found"}), 404
+    return jsonify(product.to_dict())
 
 
 # ----- Cart routes ---------------------------------------------------------
