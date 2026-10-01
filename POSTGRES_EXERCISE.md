@@ -1,64 +1,66 @@
 # Postgres Exercise — SajiloBazar
 
-By default this app needs **no database setup at all**: `backend/app.py` falls back to
-a SQLite file and creates + seeds it on first start. This exercise deliberately turns
-that off. You will run the app on **your own Postgres database**, create your own
-tables in it, and explore the data with SQL.
+By default the app needs **no database setup**: it uses a SQLite file and fills it in
+on first start. In this exercise you run it on **your own Postgres database** instead,
+then learn SQL on real shop data: first simple queries, then your own tables, joins,
+and checking the app's behaviour straight from the database.
 
-Work through it in order. Everything after Part 1 assumes the app is running on Postgres.
+Work through the parts in order. Everything after Part 2 assumes the app is running
+on Postgres.
+
+| Part | What you do | Level |
+|---|---|---|
+| 1–2 | Get a Postgres database and point the app at it | Setup |
+| 3 | First queries: `SELECT`, `WHERE`, `ORDER BY`, `COUNT` | Beginner |
+| 4 | Look at how the tables are built | Beginner |
+| 5 | Create your own tables | Intermediate |
+| 6 | Group, count and join the app's data | Intermediate |
+| 7 | Prove the app works by checking the database | QA |
+| 8–9 | Transactions, foreign keys, query plans | Advanced |
+| 10 | Clean up | — |
 
 ---
 
 ## Part 1 — Get a Postgres database
 
-Pick **one** option. Option A is faster and needs no install; Option B keeps everything
-on your laptop and works offline.
+Pick **one** option. A is quickest and needs no install; B runs on your laptop and
+works offline.
 
-### Option A — Neon (free cloud Postgres, nothing to install)
+### Option A — Neon (free cloud Postgres)
 
 1. Sign up at <https://neon.tech> (free tier, no card).
-2. Create a project — call it `sajilobazar`.
-3. On the dashboard, copy the **connection string**. It looks like:
+2. Create a project called `sajilobazar`.
+3. Copy the **connection string** from the dashboard. It looks like:
 
    ```
    postgresql://neondb_owner:SOMEPASSWORD@ep-cool-name-123456.us-east-2.aws.neon.tech/neondb?sslmode=require
    ```
 
-4. Keep that string — you need it in Part 2.
-
-You still want the `psql` command-line client locally to run queries:
+You still need the `psql` client on your laptop to type queries:
 
 ```bash
 brew install libpq
 brew link --force libpq       # puts psql on your PATH
-psql --version                # confirm it works
+psql --version
 ```
 
-### Option B — Local Postgres (macOS, Homebrew)
+### Option B — Postgres on your Mac (Homebrew)
 
 ```bash
 brew install postgresql@16
-brew services start postgresql@16     # starts the server, and on every reboot
-psql --version                        # confirm the client works
-```
-
-Create your own database and user:
-
-```bash
+brew services start postgresql@16     # starts now and after every reboot
 createdb sajilobazar
 psql -d sajilobazar -c "SELECT version();"
 ```
 
-Your connection string is then:
+Your connection string is `postgresql://YOUR_MAC_USERNAME@localhost:5432/sajilobazar`
+(`whoami` prints your username; a local install usually needs no password).
 
-```
-postgresql://YOUR_MAC_USERNAME@localhost:5432/sajilobazar
-```
-
-(`whoami` prints `YOUR_MAC_USERNAME`. A local install usually needs no password.)
-
-> **Windows:** install from <https://www.postgresql.org/download/windows/>, which
-> bundles `psql` and pgAdmin. Your string is
+> **"Library not loaded: libicu…"** when Postgres starts means Homebrew updated a
+> library Postgres was built against. Fix it with `brew reinstall postgresql@16`.
+>
+> **Windows:** install from <https://www.postgresql.org/download/windows/> (includes
+> `psql` and pgAdmin). Your string is
 > `postgresql://postgres:YOURPASSWORD@localhost:5432/sajilobazar`.
 
 ### Check the connection before going further
@@ -67,18 +69,17 @@ postgresql://YOUR_MAC_USERNAME@localhost:5432/sajilobazar
 psql "YOUR_CONNECTION_STRING" -c "SELECT current_database(), current_user;"
 ```
 
-If that prints a row, your database is real and reachable. If it hangs or errors,
-fix that now — nothing below will work until it does.
+If that prints a row, you're connected. If it hangs or errors, fix that first —
+nothing below works until it does.
 
 ---
 
 ## Part 2 — Point the app at your database
 
-The app reads `DATABASE_URL` from `backend/.env` (see `backend/app.py` lines 41–48).
-When it is unset the app silently falls back to SQLite, so **the whole point of this
-step is to set it**.
+The app reads `DATABASE_URL` from `backend/.env`. If it isn't set, the app quietly
+uses SQLite, so **setting it is the whole point of this step**.
 
-Create the file `backend/.env` — it is gitignored, so it stays yours:
+Create `backend/.env` (it is gitignored, so it stays on your laptop):
 
 ```bash
 cd backend
@@ -88,13 +89,11 @@ SECRET_KEY=any-random-string-for-local-dev
 EOF
 ```
 
-Notes:
-- The value must start with `postgresql://`. If your provider gave you `postgres://`,
-  the app rewrites it for you, but prefer the correct form.
+- The value must start with `postgresql://` (the app also fixes `postgres://` for you).
 - Neon strings must keep `?sslmode=require` on the end.
-- Never commit this file, and never paste a real password into chat or a PR.
+- Never commit this file, and never paste a real password into a chat or a PR.
 
-Now install dependencies and start the server:
+Install and start the backend (Python 3.10 or newer):
 
 ```bash
 python3 -m venv .venv
@@ -103,58 +102,162 @@ pip install -r requirements.txt
 flask run --debug --port 5000
 ```
 
-The first log line tells you which database you got. **Read it.**
+**Read the first log line.** It says which database you got, with the password hidden:
 
 ```
- * Database: postgresql://neondb_owner:***@ep-cool-name-123456...
+ * Database: postgresql://neondb_owner:***@ep-cool-name-123456.us-east-2.aws.neon.tech/neondb?sslmode=require
 ```
 
-If it says `sqlite:///...` then `.env` was not picked up — check you created it inside
-`backend/`, not at the repo root, and restart.
+If it says `sqlite:///...`, the `.env` file wasn't found: check it is inside
+`backend/` (not the repo root) and restart.
 
-On first start the app runs `init_db()` (`backend/app.py:118`) against *your* database:
-it creates 4 tables, inserts 6 sample products, and creates the demo user
-`aarati@test.com` / `test1234`.
+On first start the app sets up *your* database by itself (`init_db()` in
+`backend/app.py`): it creates **5 tables**, adds **24 products** in 6 categories, and
+creates the demo user `aarati@test.com` / `test1234`.
+
+Start the website too, in a second terminal from the repo root, and open
+<http://127.0.0.1:8000/login.html> (use `127.0.0.1`, not `localhost`, or login won't stick):
+
+```bash
+python3 -m http.server 8000 --bind 127.0.0.1
+```
 
 ---
 
-## Part 3 — Connect and explore
+## Part 3 — Your first queries (beginner)
 
-Open a second terminal and connect:
+Open a **third** terminal and connect:
 
 ```bash
 psql "YOUR_CONNECTION_STRING"
 ```
 
-Make output readable, then look around:
+You now have a prompt like `sajilobazar=>`. Type a query, end it with `;`, press Enter.
+Two tips: type `\x auto` to make wide rows readable, and `\q` to quit. (Commands that
+start with `\` don't need a `;`.)
+
+### 3a. See everything in a table
 
 ```sql
-\x auto                    -- auto-expand wide rows
-\dt                        -- list tables
-\d users                   -- describe one table: columns, types, keys, indexes
-\d+ orders                 -- same, plus storage and comments
-\di                        -- list indexes
-\l                         -- list databases
-\du                        -- list roles/users
-\q                         -- quit
+SELECT * FROM products;
 ```
 
-The four tables the app created, and what each holds:
+`SELECT` means "show me", `*` means "every column", `FROM products` says which table.
+You should see 24 rows.
 
-| Table        | Columns                                            | Written when                     |
-|--------------|----------------------------------------------------|----------------------------------|
-| `users`      | id, name, email (unique), phone, password (hash)    | someone registers                |
-| `products`   | id, name, price, tag                               | seeded at startup                |
-| `cart_items` | id, user_id → users, product_id → products, quantity | add to cart                    |
-| `orders`     | id, user_id → users, address, payment_method, total, created_at | checkout       |
+### 3b. Pick only some columns
 
-**Exercise 3.1** — Run `\d users` and answer in your own words:
-- What is the primary key, and what index enforces the unique email?
+```sql
+SELECT name, price FROM products;
+```
+
+### 3c. Filter rows with `WHERE`
+
+```sql
+SELECT name, price FROM products WHERE price < 300;          -- cheap things
+SELECT name, price FROM products WHERE tag = 'Grocery';      -- one category
+SELECT name FROM products WHERE name = 'Wild honey';         -- one exact product
+```
+
+Text goes in **single quotes**, and `=` is case-sensitive: `'grocery'` finds nothing.
+
+### 3d. Combine conditions with `AND` / `OR`
+
+```sql
+SELECT name, price FROM products WHERE tag = 'Bags' AND price < 1500;
+SELECT name, tag   FROM products WHERE tag = 'Home' OR tag = 'Grocery';
+SELECT name, tag   FROM products WHERE tag IN ('Home', 'Grocery');   -- same as the OR
+SELECT name, price FROM products WHERE price BETWEEN 500 AND 1000;  -- includes both ends
+```
+
+### 3e. Sort with `ORDER BY`, keep the top few with `LIMIT`
+
+```sql
+SELECT name, price FROM products ORDER BY price;             -- cheapest first
+SELECT name, price FROM products ORDER BY price DESC;        -- most expensive first
+SELECT name, price FROM products ORDER BY price DESC LIMIT 3;
+SELECT name FROM products ORDER BY name;                     -- A to Z
+```
+
+### 3f. Search inside text
+
+```sql
+SELECT name FROM products WHERE name LIKE '%tea%';    -- contains "tea" (case matters)
+SELECT name FROM products WHERE name ILIKE '%TEA%';   -- ILIKE ignores case
+SELECT name FROM products WHERE name ILIKE 's%';      -- starts with s
+```
+
+`%` means "any text here". The shop's search box does the same thing as `ILIKE`.
+
+### 3g. Count, and list unique values
+
+```sql
+SELECT COUNT(*) FROM products;                          -- how many rows
+SELECT COUNT(*) FROM products WHERE price > 1000;
+SELECT DISTINCT tag FROM products ORDER BY tag;         -- each category once
+SELECT name, price, price * 2 AS price_for_two FROM products;   -- maths + a column name
+```
+
+### Try it yourself
+
+Write a query for each, then check your answer.
+
+1. The names of all Stationery products.
+2. Products that cost more than Rs 2,000, most expensive first.
+3. The single cheapest product.
+4. How many products cost under Rs 500?
+5. Every product whose name contains "bag" in any case.
+
+<details>
+<summary>Answers</summary>
+
+```sql
+SELECT name FROM products WHERE tag = 'Stationery';
+SELECT name, price FROM products WHERE price > 2000 ORDER BY price DESC;
+SELECT name, price FROM products ORDER BY price LIMIT 1;
+SELECT COUNT(*) FROM products WHERE price < 500;
+SELECT name FROM products WHERE name ILIKE '%bag%';
+```
+
+You should get 4 names, 3 products, the Notebook set (Rs 95), 9, and the Jute tote bag.
+</details>
+
+---
+
+## Part 4 — How the tables are built
+
+Backslash commands describe the database rather than query it. Type them on their
+own line, with no `;` and no comment after them:
+
+| Command | Shows |
+|---|---|
+| `\dt` | every table |
+| `\d products` | one table: columns, types, keys, indexes |
+| `\d+ orders` | the same, with extra detail |
+| `\di` | every index |
+| `\du` | users/roles |
+
+```sql
+\dt
+\d products
+```
+
+The five tables the app created:
+
+| Table         | Columns                                                              | Written when        |
+|---------------|----------------------------------------------------------------------|---------------------|
+| `users`       | id, name, email (unique), phone, password (a hash)                   | someone registers   |
+| `products`    | id, name, price, tag (the category), image_url, description          | seeded at startup   |
+| `cart_items`  | id, user_id → users, product_id → products, quantity                 | add to cart         |
+| `orders`      | id, user_id → users, address, payment_method, total, created_at      | checkout            |
+| `order_items` | id, order_id → orders, product_id → products, name, price, quantity  | checkout            |
+
+**Exercise 4.1** — Run `\d users` and answer in your own words:
+- What is the primary key, and what makes `email` unique?
 - What Postgres type did `db.String(120)` become? What did `db.Float` become?
-- Why is `password` 255 characters when no one's password is that long?
+- Why is `password` 255 characters long when nobody's password is?
 
-**Exercise 3.2** — The same information lives in the system catalog. Get it with SQL
-instead of a backslash command:
+**Exercise 4.2** — The same information is in the system catalog. Get it with SQL:
 
 ```sql
 SELECT column_name, data_type, is_nullable, character_maximum_length
@@ -163,7 +266,7 @@ WHERE table_name = 'orders'
 ORDER BY ordinal_position;
 ```
 
-**Exercise 3.3** — List every foreign key in your database:
+**Exercise 4.3** — List every foreign key (every "→" in the table above):
 
 ```sql
 SELECT tc.table_name, kcu.column_name,
@@ -173,19 +276,20 @@ JOIN information_schema.key_column_usage kcu
   ON tc.constraint_name = kcu.constraint_name
 JOIN information_schema.constraint_column_usage ccu
   ON tc.constraint_name = ccu.constraint_name
-WHERE tc.constraint_type = 'FOREIGN KEY';
+WHERE tc.constraint_type = 'FOREIGN KEY'
+ORDER BY tc.table_name;
 ```
 
 ---
 
-## Part 4 — Create your own table
+## Part 5 — Create your own tables
 
-The app owns the 4 tables above. This part is yours: you write the DDL by hand.
+The app owns the five tables above. These are yours: you write the SQL by hand.
 
-You are the QA engineer for this shop. You need somewhere to record the test data you
-create and the bugs you find, in the same database as the app so you can join across.
+You are the QA engineer for this shop and need somewhere to record test runs and bugs,
+in the same database as the app so you can join them to its data.
 
-**Exercise 4.1** — Create a table for your test runs. Type it out, do not paste blindly:
+**Exercise 5.1** — Create a table for test runs. Type it out rather than pasting:
 
 ```sql
 CREATE TABLE test_runs (
@@ -200,80 +304,75 @@ CREATE TABLE test_runs (
 );
 ```
 
-Every clause is doing a job — make sure you can explain each one:
-- `SERIAL` — auto-incrementing integer, Postgres' version of SQLite's `AUTOINCREMENT`.
-- `REFERENCES users(id)` — a foreign key; you cannot record a run for a user who does not exist.
-- `CHECK` — a constraint the database enforces, no matter what the application does.
-- `DEFAULT now()` — the server fills the timestamp for you.
+Each clause does a job:
+- `SERIAL PRIMARY KEY` — a number that counts up by itself and identifies each row.
+- `NOT NULL` — this column must always have a value.
+- `REFERENCES users(id)` — a foreign key: you can't point at a user who doesn't exist.
+- `CHECK (...)` — a rule the database enforces, whatever the application does.
+- `DEFAULT now()` — the database fills in the time for you.
 
-**Exercise 4.2** — Insert rows and watch the constraints bite:
+**Exercise 5.2** — Insert rows, then watch the rules stop bad data:
 
 ```sql
 INSERT INTO test_runs (feature, test_case, status)
-VALUES ('login', 'Valid credentials log the user in', 'pass'),
-       ('cart',  'Cannot add more than 10 of one product', 'pass'),
-       ('checkout', 'Order under Rs 100 is rejected', 'fail');
+VALUES ('login',    'Valid credentials log the user in',      'pass'),
+       ('cart',     'Cannot add more than 10 of one product', 'pass'),
+       ('checkout', 'Order under Rs 100 is rejected',          'fail');
 
--- Now deliberately break it. Each of these SHOULD error. Read the error text.
+SELECT * FROM test_runs;
+
+-- Each of these SHOULD fail. Read each error message.
 INSERT INTO test_runs (feature, test_case, status) VALUES ('cart', 'x', 'PASSED');
 INSERT INTO test_runs (feature, test_case, user_id) VALUES ('cart', 'x', 9999);
 INSERT INTO test_runs (test_case) VALUES ('no feature given');
 ```
 
-Write down which constraint stopped each one. This is the point of the exercise:
-**the database refuses bad data even when the application would have let it through.**
+Write down which rule stopped each one. That is the lesson: **the database refuses bad
+data even when the application would have let it through.**
 
-**Exercise 4.3** — Change the table after the fact:
+**Exercise 5.3** — Change a table after creating it, and change rows:
 
 ```sql
 ALTER TABLE test_runs ADD COLUMN severity VARCHAR(10);
 ALTER TABLE test_runs ADD CONSTRAINT severity_is_valid
       CHECK (severity IS NULL OR severity IN ('low', 'medium', 'high'));
 CREATE INDEX idx_test_runs_feature ON test_runs (feature);
+
+UPDATE test_runs SET severity = 'high' WHERE status = 'fail';
+DELETE FROM test_runs WHERE feature = 'nothing-like-this';   -- deletes 0 rows
 \d test_runs
 ```
 
-**Exercise 4.4** — Design one more table yourself, no template given: a `bugs` table
-that records a defect you found. It must have a primary key, a NOT NULL title, a
-status constrained to a small set of values, a created timestamp defaulting to `now()`,
-and a foreign key to `test_runs(id)`. Then insert two rows.
+Always write the `WHERE` on an `UPDATE` or `DELETE` first: without it, *every* row changes.
+
+**Exercise 5.4** — Design a table yourself, no template: `bugs`, for a defect you found.
+It needs a primary key, a NOT NULL title, a status limited to a few values, a created
+time defaulting to `now()`, and a foreign key to `test_runs(id)`. Insert two rows.
 
 ---
 
-## Part 5 — Query the app's data
+## Part 6 — Group, count and join the app's data
 
-Use the site at <http://localhost:8000> (serve the frontend with
-`python3 -m http.server 8000` from the repo root) and watch what your SQL sees.
-
-**Exercise 5.1 — filtering and sorting**
+**Exercise 6.1 — grouping**
 
 ```sql
-SELECT * FROM products ORDER BY price DESC;
-SELECT name, price FROM products WHERE price > 1000;
-SELECT name, price FROM products WHERE tag = 'Electronics' OR tag = 'Home';
-SELECT name FROM products WHERE name ILIKE '%bottle%';   -- ILIKE = case-insensitive
-SELECT * FROM products ORDER BY price ASC LIMIT 3;
-```
-
-**Exercise 5.2 — aggregates**
-
-```sql
-SELECT COUNT(*) FROM products;
-SELECT tag, COUNT(*) AS how_many, AVG(price)::numeric(10,2) AS avg_price
+SELECT tag, COUNT(*) AS how_many, ROUND(AVG(price)::numeric, 2) AS avg_price
 FROM products
 GROUP BY tag
-ORDER BY how_many DESC;
+ORDER BY avg_price DESC;
 
 SELECT MIN(price), MAX(price), SUM(price) FROM products;
+
+-- HAVING filters groups, the way WHERE filters rows
+SELECT tag, AVG(price) FROM products GROUP BY tag HAVING AVG(price) > 1000;
 ```
 
-**Exercise 5.3 — joins.** Register a user on the site, add a few things to the cart,
-then run:
+**Exercise 6.2 — joins.** Log in on the site, add a few products to the cart, then:
 
 ```sql
 -- Whose cart holds what, and what is each line worth?
 SELECT u.name, p.name AS product, c.quantity, p.price,
-       (p.price * c.quantity) AS line_total
+       p.price * c.quantity AS line_total
 FROM cart_items c
 JOIN users u    ON u.id = c.user_id
 JOIN products p ON p.id = c.product_id
@@ -287,7 +386,19 @@ JOIN products p ON p.id = c.product_id
 GROUP BY u.email;
 ```
 
-**Exercise 5.4 — LEFT JOIN.** The difference matters:
+**Exercise 6.3 — what was in each order.** Place an order on the site, then:
+
+```sql
+SELECT o.id AS order_id, o.created_at::date AS day, o.payment_method,
+       oi.name, oi.quantity, oi.price * oi.quantity AS line_total, o.total
+FROM orders o
+JOIN order_items oi ON oi.order_id = o.id
+ORDER BY o.id, oi.id;
+```
+
+Check that each order's line totals add up to its `total`.
+
+**Exercise 6.4 — `LEFT JOIN`.** The difference matters:
 
 ```sql
 -- Only users who have ordered
@@ -300,11 +411,17 @@ SELECT u.name, COUNT(o.id) AS orders
 FROM users u LEFT JOIN orders o ON o.user_id = u.id
 GROUP BY u.name
 ORDER BY orders DESC;
+
+-- Products nobody has ever ordered
+SELECT p.name
+FROM products p LEFT JOIN order_items oi ON oi.product_id = p.id
+WHERE oi.id IS NULL
+ORDER BY p.name;
 ```
 
-Explain in one sentence why the two results differ.
+Explain in one sentence why the first two results differ.
 
-**Exercise 5.5 — your table joined to the app's.** Link your test runs to real users:
+**Exercise 6.5 — your table joined to the app's**
 
 ```sql
 UPDATE test_runs SET user_id = (SELECT id FROM users WHERE email = 'aarati@test.com')
@@ -316,7 +433,7 @@ LEFT JOIN users u ON u.id = t.user_id
 ORDER BY t.run_at DESC;
 ```
 
-**Exercise 5.6 — pass rate per feature**, using your own data:
+**Exercise 6.6 — pass rate per feature**
 
 ```sql
 SELECT feature,
@@ -329,29 +446,42 @@ GROUP BY feature;
 
 ---
 
-## Part 6 — Verify the app against the database
+## Part 7 — Prove the app works by checking the database
 
-This is what the database is really for in QA: the UI can lie, the API response can
-lie, the row cannot. For each scenario, do the action in the browser and then prove
-the outcome in SQL.
+This is what the database is for in QA: the screen can be wrong and the API response
+can be wrong, but the row is what was really saved. Do each action in the browser, then
+prove the result in SQL. (Find your user id with
+`SELECT id, email FROM users ORDER BY id;`.)
 
 | # | Do this in the app | Prove it in SQL |
 |---|--------------------|-----------------|
 | 1 | Register a new user | `SELECT id, name, email, phone FROM users ORDER BY id DESC LIMIT 1;` |
-| 2 | Look at that row's `password` | `SELECT email, password FROM users ORDER BY id DESC LIMIT 1;` — it must be a hash, never the plain text you typed |
-| 3 | Try registering the same email twice | `SELECT email, COUNT(*) FROM users GROUP BY email HAVING COUNT(*) > 1;` — must return **zero rows** |
-| 4 | Add 3 of one product to the cart | `SELECT * FROM cart_items WHERE user_id = <you>;` — one row with `quantity = 3`, not three rows |
+| 2 | Look at that row's password | `SELECT email, password FROM users ORDER BY id DESC LIMIT 1;` — must be a hash, never what you typed |
+| 3 | Register the same email twice | `SELECT email, COUNT(*) FROM users GROUP BY email HAVING COUNT(*) > 1;` — **zero rows** |
+| 4 | Add 3 of one product to the cart | `SELECT * FROM cart_items WHERE user_id = <you>;` — one row, `quantity = 3`, not three rows |
 | 5 | Add 3 more of the same product | still one row, `quantity = 6` |
-| 6 | Try to push that product past 10 | quantity must stay at its last good value — the rejected batch writes nothing |
-| 7 | Check out | `SELECT * FROM orders ORDER BY id DESC LIMIT 1;` **and** `SELECT COUNT(*) FROM cart_items WHERE user_id = <you>;` — the order exists **and** the cart is now empty |
-| 8 | Compare the order total | it must equal the cart total you computed in Exercise 5.3 before checkout |
-| 9 | Try to check out with a total under Rs 100 | no new row in `orders` |
+| 6 | Try to push that product past 10 | quantity stays at its last good value — the rejected add writes nothing |
+| 7 | Check out | `SELECT * FROM orders ORDER BY id DESC LIMIT 1;` **and** `SELECT COUNT(*) FROM cart_items WHERE user_id = <you>;` — the order exists **and** the cart is empty |
+| 8 | Look at the order's lines | `SELECT * FROM order_items WHERE order_id = <new order>;` — one row per product, quantities match the cart |
+| 9 | Check out with only a Notebook set (Rs 95) | no new row in `orders` — the minimum is Rs 100 |
+| 10 | Delete an order on My orders | the order **and** its `order_items` rows are gone |
 
-**Exercise 6.1** — Scenario 7 is two changes that must both happen or neither: the
-order is inserted *and* the cart rows are deleted. Find where that is done in
-`backend/models/order.py` and name the line that makes it one transaction.
+**Exercise 7.1** — Scenario 7 is two changes that must both happen or neither: insert
+the order *and* delete the cart rows. Find where that happens in
+`backend/models/order.py` and name the line that saves them together.
 
-**Exercise 6.2** — Find an orphan check. Should this ever return rows? Run it and say why:
+**Exercise 7.2** — `order_items` copies the product's name and price instead of just
+pointing at the product. Prove why with a rollback-safe experiment:
+
+```sql
+BEGIN;
+UPDATE products SET price = price + 500 WHERE name = 'Ilam green tea';
+SELECT oi.name, oi.price AS price_paid, p.price AS price_now
+FROM order_items oi JOIN products p ON p.id = oi.product_id;
+ROLLBACK;
+```
+
+**Exercise 7.3** — Orphan check. Should this ever return rows? Run it and say why:
 
 ```sql
 SELECT c.* FROM cart_items c
@@ -361,19 +491,19 @@ WHERE u.id IS NULL;
 
 ---
 
-## Part 7 — Transactions and rollback
+## Part 8 — Transactions and foreign keys
 
-Postgres lets you undo. Try it:
+A transaction lets you try changes and undo them:
 
 ```sql
 BEGIN;
-DELETE FROM products;
-SELECT COUNT(*) FROM products;    -- 0, inside your transaction
+UPDATE products SET price = 0;
+SELECT name, price FROM products LIMIT 3;   -- all 0, but only inside your transaction
 ROLLBACK;
-SELECT COUNT(*) FROM products;    -- 6 again — nothing was really deleted
+SELECT name, price FROM products LIMIT 3;   -- real prices again: nothing was saved
 ```
 
-Now the same shape with `COMMIT` instead of `ROLLBACK` — on a copy, not on `products`:
+The same shape with `COMMIT` keeps the change — try it on your own table:
 
 ```sql
 BEGIN;
@@ -381,60 +511,74 @@ UPDATE test_runs SET status = 'blocked' WHERE feature = 'cart';
 COMMIT;
 ```
 
-**Exercise 7.1** — In your own words: what does the app's `db.session.commit()` in
-`backend/models/cart_item.py` correspond to here, and what does `db.session.rollback()`
-on the over-limit path correspond to?
+Now see a foreign key protect the data. Try to delete an order directly:
+
+```sql
+BEGIN;
+DELETE FROM orders WHERE id = (SELECT MIN(order_id) FROM order_items);
+ROLLBACK;
+```
+
+It fails: `order_items` rows still point at that order. When you delete an order on
+My orders, the app deletes its `order_items` first, in the same transaction.
+
+**Exercise 8.1** — What does the app's `db.session.commit()` in
+`backend/models/cart_item.py` correspond to here, and what does
+`db.session.rollback()` on the over-limit path correspond to?
+
+**Exercise 8.2** — Why is it the app, not Postgres, that removes `order_items` when an
+order is deleted? (Hint: run `\d order_items` and read the foreign key line.)
 
 ---
 
-## Part 8 — Reading a query plan
+## Part 9 — Reading a query plan
 
 ```sql
 EXPLAIN ANALYZE SELECT * FROM test_runs WHERE feature = 'cart';
 DROP INDEX idx_test_runs_feature;
 EXPLAIN ANALYZE SELECT * FROM test_runs WHERE feature = 'cart';
+CREATE INDEX idx_test_runs_feature ON test_runs (feature);
 ```
 
-**Exercise 8.1** — Which plan says `Seq Scan` and which says `Index Scan`? With only a
-handful of rows Postgres may pick `Seq Scan` either way — explain why that is the
-*correct* choice on a tiny table. Then recreate the index.
+**Exercise 9.1** — Which plan says `Seq Scan` and which `Index Scan`? On a table this
+small Postgres may choose `Seq Scan` both times. Explain why that is the *right* choice
+for a handful of rows.
 
 ---
 
-## Part 9 — Clean up / reset
+## Part 10 — Clean up
 
-Your tables are yours to drop:
+Drop your own tables:
 
 ```sql
 DROP TABLE IF EXISTS bugs;
 DROP TABLE IF EXISTS test_runs;
 ```
 
-To reset the app's data and let it re-seed on next start:
+To wipe the app's data and let it set itself up again:
 
 ```sql
-TRUNCATE cart_items, orders, users RESTART IDENTITY CASCADE;
-DELETE FROM products;
+TRUNCATE order_items, cart_items, orders, users, products RESTART IDENTITY CASCADE;
 ```
 
-Then restart `flask run` — `init_db()` re-creates and re-seeds. Or from the backend
-folder, with the venv active: `flask seed`.
+Then restart `flask run` (or run `flask seed` from `backend/` with the venv active):
+the tables refill with the demo user and 24 products.
 
-To go back to SQLite, delete or comment out `DATABASE_URL` in `backend/.env` and
-restart. The startup log line tells you which one you are on.
+To go back to SQLite, delete or comment out `DATABASE_URL` in `backend/.env` and restart.
+The startup log line tells you which database you're on.
 
 ---
 
-## Postgres vs SQLite — differences that will trip you up
+## Postgres vs SQLite — differences that trip people up
 
 | | SQLite | Postgres |
 |---|---|---|
-| Auto-increment PK | `INTEGER PRIMARY KEY` | `SERIAL` / `GENERATED ... AS IDENTITY` |
-| Case-insensitive match | `LIKE` is case-insensitive for ASCII | `LIKE` is case-**sensitive**; use `ILIKE` |
-| String quotes | `"` and `'` both often work | `'` is a string, `"` is an identifier — not interchangeable |
-| Types | flexible, mostly advisory | strict; `'abc'` into an `INTEGER` column is an error |
+| Auto-increment id | `INTEGER PRIMARY KEY` | `SERIAL` or `GENERATED ... AS IDENTITY` |
+| Case-insensitive search | `LIKE` ignores case (for English letters) | `LIKE` is case-**sensitive**; use `ILIKE` |
+| Quotes | `"` and `'` often both work | `'text'` is a string, `"name"` is a column/table name |
+| Types | flexible | strict: `'abc'` into an `INTEGER` column is an error |
 | Booleans | 0 / 1 | real `TRUE` / `FALSE` |
-| Concurrency | one writer, whole-file lock | many concurrent writers |
+| Many users writing at once | one writer at a time | many at once |
 | Describe a table | `.schema users` | `\d users` |
 | List tables | `.tables` | `\dt` |
 
@@ -442,11 +586,11 @@ restart. The startup log line tells you which one you are on.
 
 ## What to hand in
 
-1. Your `\d test_runs` output and the `bugs` table you designed in 4.4.
-2. The error message from each of the three deliberate failures in 4.2, and the name
-   of the constraint that produced it.
-3. Results for Exercises 5.3, 5.4, and 5.6.
-4. The Part 6 table, filled in with the SQL result for each row and pass/fail.
-5. Your written answers to 3.1, 5.4, 6.1, 6.2, 7.1, and 8.1.
+1. Your answers to the five "Try it yourself" queries in Part 3.
+2. Your `\d test_runs` output and the `bugs` table you designed in 5.4.
+3. The error from each of the three deliberate failures in 5.2, and the rule that caused it.
+4. Your results for 6.2, 6.3, 6.4 and 6.6.
+5. The Part 7 table filled in with the SQL result and pass/fail for each row.
+6. Written answers to 4.1, 6.4, 7.1, 7.2, 7.3, 8.1, 8.2 and 9.1.
 
-Do **not** hand in your `.env` or your connection string.
+Do **not** hand in your `.env` file or your connection string.
