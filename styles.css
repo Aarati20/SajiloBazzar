@@ -126,6 +126,21 @@ a:focus-visible {
   background: #fff;
 }
 
+/* Dropdowns: replace the browser's arrow, which sits flush against the
+   rounded edge, with our own chevron set in from the right. */
+select.input {
+  appearance: none;
+  cursor: pointer;
+  padding-right: 52px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238f4e22' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 22px center;
+}
+
+select.input:hover {
+  border-color: var(--accent-200);
+}
+
 .password-field {
   position: relative;
   display: flex;
