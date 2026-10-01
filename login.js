@@ -5,6 +5,10 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   var err = document.getElementById('li-error');
 
+  // Only the email format can be checked while typing; a wrong password is
+  // only known after submitting.
+  liveValidate('li-email', function (v) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(v.trim()); });
+
   var passInput = document.getElementById('li-pass');
   var passToggle = document.getElementById('li-pass-toggle');
   if (passInput && passToggle) {

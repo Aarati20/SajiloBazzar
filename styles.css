@@ -537,3 +537,13 @@ main {
     aspect-ratio: 4 / 3;
   }
 }
+
+/* Field whose current value is invalid, set by liveValidate() in common.js. */
+.input.input-invalid {
+  border-color: #c0392b;
+  background: #fdf1ef;
+}
+
+.input.input-invalid:focus-visible {
+  outline-color: #c0392b;
+}

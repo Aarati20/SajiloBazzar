@@ -77,6 +77,23 @@ function renderHeader() {
     right;
 }
 
+// Turn a field red while what the user has typed is invalid. Checking starts
+// on the first keystroke, so fields the user hasn't touched stay neutral.
+// Returns the check so another field can re-run it (e.g. confirm password).
+function liveValidate(id, isValid) {
+  var el = document.getElementById(id);
+  var touched = false;
+  function check() {
+    if (!touched) return;
+    var bad = !isValid(el.value);
+    el.classList.toggle('input-invalid', bad);
+    if (bad) el.setAttribute('aria-invalid', 'true');
+    else el.removeAttribute('aria-invalid');
+  }
+  el.addEventListener('input', function () { touched = true; check(); });
+  return check;
+}
+
 async function logout() {
   try { await api('/logout', { method: 'POST' }); } catch (e) {}
   CURRENT_USER = null;
