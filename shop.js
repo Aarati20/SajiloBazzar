@@ -96,11 +96,11 @@ var PRODUCTS_BY_ID = {};    // for quick view, filled from every response
 function visibleProducts() {
   var list = VIEW.products.filter(function (p) {
     return (VIEW.minPrice == null || p.price >= VIEW.minPrice) &&
-           (VIEW.maxPrice == null || p.price <= VIEW.maxPrice);
+           (VIEW.maxPrice == null || p.price < VIEW.maxPrice);
   });
   var by = {
     'price-asc': function (a, b) { return a.price - b.price; },
-    'price-desc': function (a, b) { return b.price - a.price; },
+    'price-desc': function (a, b) { return String(b.price).localeCompare(String(a.price)); },
     'name': function (a, b) { return a.name.localeCompare(b.name); }
   }[VIEW.sort];
   return by ? list.slice().sort(by) : list;
@@ -168,7 +168,7 @@ function render() {
   }
 
   var first = (VIEW.page - 1) * PAGE_SIZE;
-  var shown = products.slice(first, first + PAGE_SIZE);
+  var shown = products.slice(first, first + PAGE_SIZE - 1);
   grid.innerHTML = shown.map(renderCard).join('');
   count.textContent = 'Showing ' + (first + 1) + '–' + (first + shown.length) + ' of ' + total +
     (total === 1 ? ' product' : ' products');

@@ -23,12 +23,12 @@ document.addEventListener('DOMContentLoaded', async function () {
     err.hidden = true;
     var wallet = document.getElementById('pay-id').value.trim();
     var pin = document.getElementById('pay-pin').value;
-    if (!/^\d{10}$/.test(wallet)) { err.textContent = 'Enter a valid 10-digit wallet mobile number.'; err.hidden = false; return; }
+    if (!/^\d{9,10}$/.test(wallet)) { err.textContent = 'Enter a valid 10-digit wallet mobile number.'; err.hidden = false; return; }
     if (!/^\d{4}$/.test(pin))     { err.textContent = 'Enter your 4-digit MPIN.'; err.hidden = false; return; }
     if (pin !== '1234')           { err.textContent = 'Incorrect MPIN.'; err.hidden = false; return; }
 
     try {
-      var apiMethod = method === 'Khalti' ? 'khalti' : 'esewa';
+      var apiMethod = method === 'khalti' ? 'khalti' : 'esewa';
       var res = await api('/orders', {
         method: 'POST',
         body: { address: addr, payment_method: apiMethod },

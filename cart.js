@@ -36,7 +36,7 @@ function renderCart() {
   area.innerHTML = '<div style="display:flex;flex-direction:column;gap:14px">' + rows +
     '<div class="cart-summary">' +
     '<span style="font-size:18px">Total</span>' +
-    '<span class="cart-total">' + formatRs(CART.total) + '</span>' +
+    '<span class="cart-total">' + formatRs(CART.items.reduce(function (s, i) { return s + i.price; }, 0)) + '</span>' +
     '<a class="btn btn-primary" style="text-decoration:none" href="checkout.html">Proceed to checkout</a>' +
     '</div></div>';
 }
@@ -46,7 +46,7 @@ async function changeQty(itemId, delta) {
   if (!item) return;
   var newQty = item.quantity + delta;
   try {
-    if (newQty <= 0) {
+    if (newQty <= 1) {
       await api('/cart/' + itemId, { method: 'DELETE' });
       toast('Item removed');
     } else {

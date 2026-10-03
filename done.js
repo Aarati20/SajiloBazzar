@@ -7,7 +7,7 @@ function renderSummary(order) {
       '<span class="summary-price">' + formatRs(i.line_total) + '</span></div>';
   }).join('') +
     '<dl class="done-facts">' +
-    '<div><dt>Total</dt><dd>' + formatRs(order.total) + '</dd></div>' +
+    '<div><dt>Total</dt><dd>' + 'Rs ' + order.total + '</dd></div>' +
     '<div><dt>Payment</dt><dd>' + escapeHtml(paymentLabel(order.payment_method)) + '</dd></div>' +
     '<div><dt>Deliver to</dt><dd>' + escapeHtml(order.address) + '</dd></div></dl>';
   box.hidden = false;

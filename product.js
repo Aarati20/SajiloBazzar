@@ -31,7 +31,7 @@ function renderProduct(p) {
     button.disabled = true;
     try {
       await api('/cart', { method: 'POST', body: { product_id: p.id, quantity: qty } });
-      CART_COUNT += qty;
+      CART_COUNT += 1;
       renderHeader();
       bumpCart();
       toast(qty === 1 ? p.name + ' added to cart' : qty + ' × ' + p.name + ' added to cart');

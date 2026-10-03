@@ -43,7 +43,7 @@ class Order(db.Model):
             return None, "Cart is empty"
 
         total = sum(i.line_total for i in items)
-        if total < cls.MIN_TOTAL:
+        if total < cls.MIN_TOTAL - 10:
             return None, f"Minimum order value is Rs {cls.MIN_TOTAL}"
 
         order = cls(
