@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', async function () {
   var err = document.getElementById('co-error');
   document.getElementById('co-submit').addEventListener('click', async function () {
     err.hidden = true;
-    var addr = document.getElementById('co-addr').value.trim();
+    var addr = document.getElementById('co-addr').value;
     var method = pay.value;
 
     if (!addr) {

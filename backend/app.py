@@ -351,12 +351,7 @@ def list_products():
         # instead of matching everything.
         escaped = term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
         pattern = f"%{escaped}%"
-        query = query.filter(
-            db.or_(
-                Product.name.ilike(pattern, escape="\\"),
-                Product.tag.ilike(pattern, escape="\\"),
-            )
-        )
+        query = query.filter(Product.name.ilike(pattern, escape="\\"))
     return jsonify([p.to_dict() for p in query.order_by(Product.id).all()])
 
 
@@ -599,7 +594,7 @@ def my_orders():
     """List my past orders (newest first)."""
     rows = (
         Order.query.filter_by(user_id=request.user.id)
-        .order_by(Order.created_at.desc())
+        .order_by(Order.created_at.asc())
         .all()
     )
     return jsonify([o.to_dict() for o in rows])
@@ -625,7 +620,6 @@ def delete_order(order_id):
     if not order:
         return jsonify({"error": "Order not found"}), 404
     db.session.delete(order)
-    db.session.commit()
     return "", 204
 
 
